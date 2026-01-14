@@ -3,6 +3,7 @@ package com.cms.ui.views;
 import com.cms.di.AppFactory;
 import com.cms.domain.Patient;
 import com.cms.repository.PatientRepository;
+import com.cms.ui.MainFrame;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,18 +14,20 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
-public class PatientsView extends JPanel {
+public class PatientsView extends JPanel implements MainFrame.RefreshableView {
 
     private static final Color PRIMARY = new Color(59, 130, 246);
     private static final Color SUCCESS = new Color(34, 197, 94);
     private static final Color DANGER = new Color(239, 68, 68);
 
     private final PatientRepository patientRepository;
+    private final MainFrame mainFrame;
     private JTable patientsTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
 
-    public PatientsView() {
+    public PatientsView(MainFrame mainFrame) {
+        this.mainFrame = mainFrame;
         this.patientRepository = AppFactory.getInstance().getPatientRepository();
 
         setLayout(new BorderLayout());
@@ -198,6 +201,17 @@ public class PatientsView extends JPanel {
         }
     }
 
+    public void showNewPatientDialog() {
+        showPatientDialog(null);
+    }
+
+    public void focusSearchField() {
+        SwingUtilities.invokeLater(() -> {
+            searchField.requestFocusInWindow();
+            searchField.selectAll();
+        });
+    }
+
     private void showPatientDialog(Patient patient) {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
                 patient == null ? "Nuevo Paciente" : "Editar Paciente", true);
@@ -296,5 +310,10 @@ public class PatientsView extends JPanel {
             patientRepository.delete(id);
             loadPatients();
         }
+    }
+
+    @Override
+    public void refresh() {
+        loadPatients();
     }
 }

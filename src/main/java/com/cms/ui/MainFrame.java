@@ -9,15 +9,20 @@ import com.cms.ui.views.ClinicalHistoryView;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainFrame extends JFrame {
 
     private final NavigationDrawer navigationDrawer;
     private final ContentPanel contentPanel;
     private final AppFactory appFactory;
+    private final Map<String, JPanel> viewCache;
+    private String currentViewName;
 
     public MainFrame() {
         this.appFactory = AppFactory.getInstance();
+        this.viewCache = new HashMap<>();
 
         setTitle("Clinical Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -41,14 +46,86 @@ public class MainFrame extends JFrame {
     }
 
     public void navigateTo(String viewName) {
-        JPanel view = switch (viewName.toLowerCase()) {
-            case "dashboard" -> new DashboardView();
-            case "patients", "pacientes" -> new PatientsView();
-            case "history", "historias" -> new ClinicalHistoryView();
+        navigateToWithAction(viewName, null, null);
+    }
+
+    public void navigateToWithAction(String viewName, String action, Object data) {
+        String normalizedName = viewName.toLowerCase();
+        JPanel view = getOrCreateView(normalizedName);
+
+        if (view != null) {
+            contentPanel.setContent(view);
+            navigationDrawer.setActiveItem(viewName);
+            currentViewName = normalizedName;
+
+            if (action != null) {
+                executeViewAction(view, action, data);
+            }
+        }
+    }
+
+    private JPanel getOrCreateView(String viewName) {
+        if (viewCache.containsKey(viewName)) {
+            JPanel cached = viewCache.get(viewName);
+            if (cached instanceof RefreshableView) {
+                ((RefreshableView) cached).refresh();
+            }
+            return cached;
+        }
+
+        JPanel view = switch (viewName) {
+            case "dashboard" -> new DashboardView(this);
+            case "patients", "pacientes" -> new PatientsView(this);
+            case "history", "historias" -> new ClinicalHistoryView(this);
             default -> createPlaceholderView(viewName);
         };
-        contentPanel.setContent(view);
-        navigationDrawer.setActiveItem(viewName);
+
+        viewCache.put(viewName, view);
+        return view;
+    }
+
+    private void executeViewAction(JPanel view, String action, Object data) {
+        SwingUtilities.invokeLater(() -> {
+            switch (action) {
+                case "new_patient" -> {
+                    if (view instanceof PatientsView pv) {
+                        pv.showNewPatientDialog();
+                    }
+                }
+                case "search_patient" -> {
+                    if (view instanceof PatientsView pv) {
+                        pv.focusSearchField();
+                    }
+                }
+                case "new_consultation" -> {
+                    if (view instanceof ClinicalHistoryView chv) {
+                        chv.showNewConsultationDialog();
+                    }
+                }
+                case "select_patient" -> {
+                    if (view instanceof ClinicalHistoryView chv && data instanceof Integer patientId) {
+                        chv.selectPatient(patientId);
+                    }
+                }
+            }
+        });
+    }
+
+    public void refreshCurrentView() {
+        if (currentViewName != null && viewCache.containsKey(currentViewName)) {
+            JPanel view = viewCache.get(currentViewName);
+            if (view instanceof RefreshableView) {
+                ((RefreshableView) view).refresh();
+            }
+        }
+    }
+
+    public void clearViewCache() {
+        viewCache.clear();
+    }
+
+    public void clearViewCache(String viewName) {
+        viewCache.remove(viewName.toLowerCase());
     }
 
     private JPanel createPlaceholderView(String name) {
@@ -61,5 +138,9 @@ public class MainFrame extends JFrame {
 
     public AppFactory getAppFactory() {
         return appFactory;
+    }
+
+    public interface RefreshableView {
+        void refresh();
     }
 }

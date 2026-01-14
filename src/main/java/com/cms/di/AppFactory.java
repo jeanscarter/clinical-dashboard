@@ -6,9 +6,12 @@ import com.cms.infra.EventBus;
 import com.cms.repository.AttachmentRepository;
 import com.cms.repository.ClinicalHistoryRepository;
 import com.cms.repository.PatientRepository;
+import com.cms.repository.UserRepository;
 import com.cms.repository.sqlite.SQLiteAttachmentRepository;
 import com.cms.repository.sqlite.SQLiteClinicalHistoryRepository;
 import com.cms.repository.sqlite.SQLitePatientRepository;
+import com.cms.repository.sqlite.SQLiteUserRepository;
+import com.cms.service.*;
 
 public class AppFactory {
 
@@ -17,9 +20,22 @@ public class AppFactory {
     private final EventBus eventBus;
     private final AppTheme appTheme;
 
+    // Repositories
     private PatientRepository patientRepository;
     private ClinicalHistoryRepository clinicalHistoryRepository;
     private AttachmentRepository attachmentRepository;
+    private UserRepository userRepository;
+
+    // Services
+    private PatientService patientService;
+    private ClinicalHistoryService clinicalHistoryService;
+    private AttachmentService attachmentService;
+    private AuthenticationService authenticationService;
+    private UserService userService;
+    private StatisticsService statisticsService;
+    private ReportService reportService;
+    private BackupService backupService;
+    private ExportImportService exportImportService;
 
     private AppFactory() {
         this.dbConnection = DatabaseConnection.getInstance();
@@ -47,6 +63,7 @@ public class AppFactory {
         return appTheme;
     }
 
+    // Repositories
     public PatientRepository getPatientRepository() {
         if (patientRepository == null) {
             patientRepository = new SQLitePatientRepository(dbConnection);
@@ -66,5 +83,87 @@ public class AppFactory {
             attachmentRepository = new SQLiteAttachmentRepository(dbConnection);
         }
         return attachmentRepository;
+    }
+
+    public UserRepository getUserRepository() {
+        if (userRepository == null) {
+            userRepository = new SQLiteUserRepository(dbConnection);
+        }
+        return userRepository;
+    }
+
+    // Services
+    public PatientService getPatientService() {
+        if (patientService == null) {
+            patientService = new PatientService(
+                    getPatientRepository(),
+                    getClinicalHistoryRepository());
+        }
+        return patientService;
+    }
+
+    public ClinicalHistoryService getClinicalHistoryService() {
+        if (clinicalHistoryService == null) {
+            clinicalHistoryService = new ClinicalHistoryService(
+                    getClinicalHistoryRepository(),
+                    getAttachmentRepository(),
+                    getPatientRepository());
+        }
+        return clinicalHistoryService;
+    }
+
+    public AttachmentService getAttachmentService() {
+        if (attachmentService == null) {
+            attachmentService = new AttachmentService(getAttachmentRepository());
+        }
+        return attachmentService;
+    }
+
+    public AuthenticationService getAuthenticationService() {
+        if (authenticationService == null) {
+            authenticationService = new AuthenticationService(getUserRepository());
+        }
+        return authenticationService;
+    }
+
+    public UserService getUserService() {
+        if (userService == null) {
+            userService = new UserService(getUserRepository());
+        }
+        return userService;
+    }
+
+    public StatisticsService getStatisticsService() {
+        if (statisticsService == null) {
+            statisticsService = new StatisticsService(
+                    getPatientRepository(),
+                    getClinicalHistoryRepository());
+        }
+        return statisticsService;
+    }
+
+    public ReportService getReportService() {
+        if (reportService == null) {
+            reportService = new ReportService(
+                    getPatientRepository(),
+                    getClinicalHistoryRepository());
+        }
+        return reportService;
+    }
+
+    public BackupService getBackupService() {
+        if (backupService == null) {
+            backupService = new BackupService(dbConnection);
+        }
+        return backupService;
+    }
+
+    public ExportImportService getExportImportService() {
+        if (exportImportService == null) {
+            exportImportService = new ExportImportService(
+                    getPatientRepository(),
+                    getClinicalHistoryRepository());
+        }
+        return exportImportService;
     }
 }

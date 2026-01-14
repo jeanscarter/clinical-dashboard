@@ -8,7 +8,8 @@ public class DatabaseConnection {
 
     private static DatabaseConnection instance;
     private Connection connection;
-    private final String url = "jdbc:sqlite:clinic_db.sqlite";
+    private static final String DATABASE_PATH = "clinic_db.sqlite";
+    private final String url = "jdbc:sqlite:" + DATABASE_PATH;
 
     private DatabaseConnection() {
         try {
@@ -37,9 +38,11 @@ public class DatabaseConnection {
         return connection;
     }
 
+    public String getDatabasePath() {
+        return DATABASE_PATH;
+    }
+
     private void initializeTables() throws SQLException {
-        // Basic tables creation could go here or in a separate SchemaManager
-        // Keeping it simple for Phase 1 as requested
         try (var stmt = connection.createStatement()) {
             stmt.execute("CREATE TABLE IF NOT EXISTS patients (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -53,13 +56,41 @@ public class DatabaseConnection {
                     "email TEXT, " +
                     "fecha_registro TEXT)");
 
-            stmt.execute("CREATE TABLE IF NOT EXISTS clinical_history (" +
+            stmt.execute("CREATE TABLE IF NOT EXISTS clinical_histories (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "patient_id INTEGER, " +
+                    "patient_id INTEGER NOT NULL, " +
+                    "fecha_consulta TEXT NOT NULL, " +
+                    "motivo_consulta TEXT NOT NULL, " +
                     "antecedentes TEXT, " +
+                    "examen_fisico TEXT, " +
+                    "diagnostico TEXT, " +
                     "conducta TEXT, " +
-                    "fecha TEXT, " +
-                    "FOREIGN KEY(patient_id) REFERENCES patients(id))");
+                    "observaciones TEXT, " +
+                    "medico TEXT, " +
+                    "FOREIGN KEY(patient_id) REFERENCES patients(id) ON DELETE CASCADE)");
+
+            stmt.execute("CREATE TABLE IF NOT EXISTS attachments (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "clinical_history_id INTEGER NOT NULL, " +
+                    "nombre TEXT NOT NULL, " +
+                    "ruta_archivo TEXT NOT NULL, " +
+                    "tipo TEXT, " +
+                    "tamano_bytes INTEGER, " +
+                    "fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY(clinical_history_id) REFERENCES clinical_histories(id) ON DELETE CASCADE)");
+
+            stmt.execute("CREATE TABLE IF NOT EXISTS users (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "username TEXT NOT NULL UNIQUE, " +
+                    "password_hash TEXT NOT NULL, " +
+                    "salt TEXT NOT NULL, " +
+                    "role TEXT NOT NULL, " +
+                    "full_name TEXT NOT NULL, " +
+                    "active INTEGER DEFAULT 1, " +
+                    "created_at TEXT DEFAULT CURRENT_TIMESTAMP, " +
+                    "last_login TEXT, " +
+                    "failed_attempts INTEGER DEFAULT 0, " +
+                    "locked_until TEXT)");
         }
     }
 }

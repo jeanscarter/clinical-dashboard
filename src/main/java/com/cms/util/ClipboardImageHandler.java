@@ -63,6 +63,17 @@ public class ClipboardImageHandler {
         }
     }
 
+    public Optional<File> saveImageToTempFile(BufferedImage image, File destFile) {
+        try {
+            destFile.getParentFile().mkdirs();
+            ImageIO.write(image, "PNG", destFile);
+            return Optional.of(destFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
     public Optional<File> copyFileToAttachments(String sourcePath, Integer historyId) {
         try {
             Path source = Paths.get(sourcePath);
@@ -75,8 +86,11 @@ public class ClipboardImageHandler {
 
             String originalName = source.getFileName().toString();
             String extension = getExtension(originalName);
-            String newName = originalName.replace(extension, "") + "_" +
-                    UUID.randomUUID().toString().substring(0, 8) + extension;
+            String baseName = originalName;
+            if (!extension.isEmpty()) {
+                baseName = originalName.substring(0, originalName.length() - extension.length());
+            }
+            String newName = baseName + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
 
             Path destination = attachmentsPath.resolve(newName);
             Files.copy(source, destination);
@@ -118,6 +132,27 @@ public class ClipboardImageHandler {
             case ".docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
             default -> "application/octet-stream";
         };
+    }
+
+    public BufferedImage captureScreen() {
+        try {
+            Robot robot = new Robot();
+            Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
+            return robot.createScreenCapture(screenRect);
+        } catch (AWTException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public BufferedImage captureScreenRegion(Rectangle region) {
+        try {
+            Robot robot = new Robot();
+            return robot.createScreenCapture(region);
+        } catch (AWTException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private BufferedImage toBufferedImage(Image img) {

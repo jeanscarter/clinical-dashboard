@@ -3,6 +3,8 @@ package com.cms.ui.views;
 import com.cms.di.AppFactory;
 import com.cms.repository.PatientRepository;
 import com.cms.repository.ClinicalHistoryRepository;
+import com.cms.ui.MainFrame;
+import com.cms.ui.dialogs.ReportsDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -18,8 +20,10 @@ public class DashboardView extends JPanel {
 
     private final PatientRepository patientRepository;
     private final ClinicalHistoryRepository clinicalHistoryRepository;
+    private final MainFrame mainFrame;
 
-    public DashboardView() {
+    public DashboardView(MainFrame mainFrame) {
+        this.mainFrame = mainFrame;
         AppFactory factory = AppFactory.getInstance();
         this.patientRepository = factory.getPatientRepository();
         this.clinicalHistoryRepository = factory.getClinicalHistoryRepository();
@@ -209,10 +213,34 @@ public class DashboardView extends JPanel {
         JPanel actionsPanel = new JPanel(new GridLayout(2, 2, 10, 10));
         actionsPanel.setOpaque(false);
 
-        actionsPanel.add(createActionButton("Nuevo Paciente", "➕", PRIMARY));
-        actionsPanel.add(createActionButton("Nueva Consulta", "📝", SUCCESS));
-        actionsPanel.add(createActionButton("Buscar Paciente", "🔍", INFO));
-        actionsPanel.add(createActionButton("Reportes", "📈", WARNING));
+        JButton newPatientBtn = createActionButton("Nuevo Paciente", "➕", PRIMARY);
+        newPatientBtn.addActionListener(e -> {
+            if (mainFrame != null) {
+                mainFrame.navigateToWithAction("patients", "new_patient", null);
+            }
+        });
+
+        JButton newConsultaBtn = createActionButton("Nueva Consulta", "📝", SUCCESS);
+        newConsultaBtn.addActionListener(e -> {
+            if (mainFrame != null) {
+                mainFrame.navigateToWithAction("history", "new_consultation", null);
+            }
+        });
+
+        JButton searchPatientBtn = createActionButton("Buscar Paciente", "🔍", INFO);
+        searchPatientBtn.addActionListener(e -> {
+            if (mainFrame != null) {
+                mainFrame.navigateToWithAction("patients", "search_patient", null);
+            }
+        });
+
+        JButton reportsBtn = createActionButton("Reportes", "📈", WARNING);
+        reportsBtn.addActionListener(e -> showReportsDialog());
+
+        actionsPanel.add(newPatientBtn);
+        actionsPanel.add(newConsultaBtn);
+        actionsPanel.add(searchPatientBtn);
+        actionsPanel.add(reportsBtn);
 
         card.add(title, BorderLayout.NORTH);
         card.add(actionsPanel, BorderLayout.CENTER);
@@ -230,5 +258,13 @@ public class DashboardView extends JPanel {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(0, 50));
         return button;
+    }
+
+    private void showReportsDialog() {
+        ReportsDialog dialog = new ReportsDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this),
+                patientRepository,
+                clinicalHistoryRepository);
+        dialog.setVisible(true);
     }
 }
