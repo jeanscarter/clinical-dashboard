@@ -67,10 +67,6 @@ public class AuthenticationService {
         return SecurityContext.getCurrentUser();
     }
 
-    public boolean hasRole(Role role) {
-        return SecurityContext.hasRole(role);
-    }
-
     public boolean hasPermission(String permission) {
         User user = SecurityContext.getCurrentUser();
         if (user == null)

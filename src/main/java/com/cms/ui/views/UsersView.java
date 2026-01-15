@@ -255,7 +255,7 @@ public class UsersView extends JPanel implements MainFrame.RefreshableView {
         gbc.insets = new Insets(8, 8, 8, 8);
 
         JTextField usernameField = new JTextField(user != null ? user.getUsername() : "");
-        usernameField.setEnabled(user == null);
+        usernameField.setEnabled(true);
         JPasswordField passwordField = new JPasswordField();
         JTextField fullNameField = new JTextField(user != null ? user.getFullName() : "");
         JComboBox<Role> roleCombo = new JComboBox<>(Role.values());

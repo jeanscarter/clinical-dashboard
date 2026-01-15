@@ -12,6 +12,7 @@ import com.cms.ui.dialogs.ReportsDialog;
 import com.cms.ui.views.ClinicalHistoryView;
 import com.cms.ui.views.DashboardView;
 import com.cms.ui.views.PatientsView;
+import com.cms.ui.views.SettingsView;
 import com.cms.ui.views.UsersView;
 
 import javax.swing.*;
@@ -156,6 +157,7 @@ public class MainFrame extends JFrame {
             case "patients", "pacientes" -> new PatientsView(this);
             case "history", "historias" -> new ClinicalHistoryView(this);
             case "usuarios" -> new UsersView(this);
+            case "settings" -> new SettingsView(this);
             default -> createPlaceholderView(viewName);
         };
 
