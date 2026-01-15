@@ -1,5 +1,8 @@
 package com.cms.ui.components;
 
+import com.cms.domain.User;
+import com.cms.infra.SecurityContext;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -73,15 +76,9 @@ public class NavigationDrawer extends JPanel {
         addNavItem(navPanel, "dashboard", "Dashboard", "📊");
         addNavItem(navPanel, "pacientes", "Pacientes", "👥");
         addNavItem(navPanel, "historias", "Historias Clínicas", "📋");
+        addNavItem(navPanel, "reportes", "Reportes", "📈");
 
         navPanel.add(Box.createVerticalStrut(20));
-
-        JLabel sectionLabel = new JLabel("CONFIGURACIÓN");
-        sectionLabel.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        sectionLabel.setForeground(TEXT_MUTED);
-        sectionLabel.setBorder(new EmptyBorder(10, 10, 5, 0));
-        sectionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        navPanel.add(sectionLabel);
 
         addNavItem(navPanel, "settings", "Configuración", "⚙️");
 
@@ -118,11 +115,14 @@ public class NavigationDrawer extends JPanel {
         userInfo.setLayout(new BoxLayout(userInfo, BoxLayout.Y_AXIS));
         userInfo.setBackground(DRAWER_BG);
 
-        JLabel userName = new JLabel("Administrador");
+        User currentUser = SecurityContext.getCurrentUser();
+        String displayName = currentUser != null ? currentUser.getFullName() : "Usuario";
+        JLabel userName = new JLabel(displayName);
         userName.setFont(new Font("Segoe UI", Font.BOLD, 12));
         userName.setForeground(TEXT_COLOR);
 
-        JLabel userRole = new JLabel("Sistema");
+        String roleName = currentUser != null ? currentUser.getRole().getDisplayName() : "Sistema";
+        JLabel userRole = new JLabel(roleName);
         userRole.setFont(new Font("Segoe UI", Font.PLAIN, 10));
         userRole.setForeground(TEXT_MUTED);
 
@@ -142,6 +142,16 @@ public class NavigationDrawer extends JPanel {
         for (NavItem item : navItems) {
             item.updateState();
         }
+    }
+
+    public void refresh() {
+        // Refresh footer with current user info
+        removeAll();
+        add(createHeader(), BorderLayout.NORTH);
+        add(createNavigationPanel(), BorderLayout.CENTER);
+        add(createFooter(), BorderLayout.SOUTH);
+        revalidate();
+        repaint();
     }
 
     private class NavItem extends JPanel {

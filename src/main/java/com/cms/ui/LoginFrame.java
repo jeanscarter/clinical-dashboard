@@ -30,11 +30,11 @@ public class LoginFrame extends JFrame {
 
         setTitle("Clinical Management System - Iniciar Sesión");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(450, 500);
-        setLocationRelativeTo(null);
         setResizable(false);
 
         setContentPane(createContent());
+        pack();
+        setLocationRelativeTo(null);
     }
 
     private JPanel createContent() {
@@ -60,7 +60,6 @@ public class LoginFrame extends JFrame {
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
                 new EmptyBorder(40, 40, 40, 40)));
-        card.setPreferredSize(new Dimension(380, 380));
 
         JLabel iconLabel = new JLabel("🏥");
         iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
@@ -125,6 +124,7 @@ public class LoginFrame extends JFrame {
         card.add(errorLabel);
         card.add(Box.createVerticalStrut(10));
         card.add(loginButton);
+        card.add(Box.createVerticalStrut(20));
 
         return card;
     }
@@ -133,7 +133,7 @@ public class LoginFrame extends JFrame {
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         label.setForeground(new Color(71, 85, 105));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
         return label;
     }
 

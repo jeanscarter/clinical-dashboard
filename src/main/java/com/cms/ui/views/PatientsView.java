@@ -156,12 +156,27 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView {
                 int column = patientsTable.columnAtPoint(e.getPoint());
                 int row = patientsTable.rowAtPoint(e.getPoint());
                 if (column == 6 && row >= 0) {
-                    int x = e.getPoint().x - patientsTable.getCellRect(row, column, true).x;
-                    if (x < 45) {
+                    Rectangle cellRect = patientsTable.getCellRect(row, column, true);
+                    int xInCell = e.getPoint().x - cellRect.x;
+                    int cellWidth = cellRect.width;
+
+                    // Button layout: FlowLayout.CENTER with 5px horizontal gap
+                    // Each button is 35px wide
+                    // Total buttons width = 35 + 5 + 35 = 75px
+                    int buttonWidth = 35;
+                    int buttonGap = 5;
+                    int buttonsWidth = buttonWidth + buttonGap + buttonWidth;
+                    int startX = (cellWidth - buttonsWidth) / 2;
+                    int editEnd = startX + buttonWidth;
+                    int deleteStart = editEnd + buttonGap;
+                    int deleteEnd = deleteStart + buttonWidth;
+
+                    if (xInCell >= startX && xInCell < editEnd) {
                         editPatient(row);
-                    } else if (x < 90) {
+                    } else if (xInCell >= deleteStart && xInCell < deleteEnd) {
                         deletePatient(row);
                     }
+                    // Clicks outside button areas do nothing
                 }
             }
         });

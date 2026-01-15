@@ -91,6 +91,15 @@ public class AuthenticationService {
         return SecurityContext.isAuthenticated();
     }
 
+    public boolean isUsingDefaultPassword(String username) {
+        if (!"admin".equals(username)) {
+            return false;
+        }
+        return userRepository.findByUsername(username)
+                .map(user -> hashPassword("admin123", user.getSalt()).equals(user.getPasswordHash()))
+                .orElse(false);
+    }
+
     public void changePassword(String username, String oldPassword, String newPassword) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
