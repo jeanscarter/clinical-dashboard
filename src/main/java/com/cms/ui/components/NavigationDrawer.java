@@ -80,6 +80,16 @@ public class NavigationDrawer extends JPanel {
 
         navPanel.add(Box.createVerticalStrut(20));
 
+        User currentUser = SecurityContext.getCurrentUser();
+        if (currentUser != null && currentUser.getRole().canManageUsers()) {
+            addNavItem(navPanel, "usuarios", "Usuarios", "👤");
+        }
+        if (currentUser != null && currentUser.getRole().canManageBackups()) {
+            addNavItem(navPanel, "respaldo", "Respaldo", "💾");
+        }
+
+        navPanel.add(Box.createVerticalStrut(20));
+
         addNavItem(navPanel, "settings", "Configuración", "⚙️");
 
         navPanel.add(Box.createVerticalGlue());

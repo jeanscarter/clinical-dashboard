@@ -6,11 +6,13 @@ import com.cms.infra.SecurityContext;
 import com.cms.service.AuthenticationService;
 import com.cms.ui.components.NavigationDrawer;
 import com.cms.ui.components.ContentPanel;
+import com.cms.ui.dialogs.BackupRestoreDialog;
 import com.cms.ui.dialogs.ChangePasswordDialog;
 import com.cms.ui.dialogs.ReportsDialog;
+import com.cms.ui.views.ClinicalHistoryView;
 import com.cms.ui.views.DashboardView;
 import com.cms.ui.views.PatientsView;
-import com.cms.ui.views.ClinicalHistoryView;
+import com.cms.ui.views.UsersView;
 
 import javax.swing.*;
 import java.awt.*;
@@ -108,6 +110,12 @@ public class MainFrame extends JFrame {
             return;
         }
 
+        // Handle backup - show dialog instead of view
+        if ("respaldo".equals(normalizedName)) {
+            showBackupRestoreDialog();
+            return;
+        }
+
         JPanel view = getOrCreateView(normalizedName);
 
         if (view != null) {
@@ -129,6 +137,11 @@ public class MainFrame extends JFrame {
         dialog.setVisible(true);
     }
 
+    private void showBackupRestoreDialog() {
+        BackupRestoreDialog dialog = new BackupRestoreDialog(this);
+        dialog.setVisible(true);
+    }
+
     private JPanel getOrCreateView(String viewName) {
         if (viewCache.containsKey(viewName)) {
             JPanel cached = viewCache.get(viewName);
@@ -142,6 +155,7 @@ public class MainFrame extends JFrame {
             case "dashboard" -> new DashboardView(this);
             case "patients", "pacientes" -> new PatientsView(this);
             case "history", "historias" -> new ClinicalHistoryView(this);
+            case "usuarios" -> new UsersView(this);
             default -> createPlaceholderView(viewName);
         };
 
