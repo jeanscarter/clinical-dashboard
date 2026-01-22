@@ -3,6 +3,10 @@ package com.cms.di;
 import com.cms.infra.AppTheme;
 import com.cms.infra.DatabaseConnection;
 import com.cms.infra.EventBus;
+import com.cms.presenter.ClinicalHistoryContract;
+import com.cms.presenter.ClinicalHistoryPresenter;
+import com.cms.presenter.PatientContract;
+import com.cms.presenter.PatientPresenter;
 import com.cms.repository.AttachmentRepository;
 import com.cms.repository.ClinicalHistoryRepository;
 import com.cms.repository.PatientRepository;
@@ -69,6 +73,17 @@ public class AppFactory {
             patientRepository = new SQLitePatientRepository(dbConnection);
         }
         return patientRepository;
+    }
+
+    public PatientPresenter getPatientPresenter(PatientContract.View view) {
+        return new PatientPresenter(view, getPatientRepository());
+    }
+
+    public ClinicalHistoryPresenter getClinicalHistoryPresenter(ClinicalHistoryContract.View view) {
+        return new ClinicalHistoryPresenter(
+                view,
+                getClinicalHistoryRepository(),
+                getAttachmentRepository());
     }
 
     public ClinicalHistoryRepository getClinicalHistoryRepository() {

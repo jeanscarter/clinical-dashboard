@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS attachments (
     ruta_archivo TEXT NOT NULL,
     tipo TEXT,
     tamano_bytes INTEGER,
-    fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+    fecha_carga TEXT DEFAULT CURRENT_TIMESTAMP,
+    descripcion TEXT,
     FOREIGN KEY (clinical_history_id) REFERENCES clinical_histories(id) ON DELETE CASCADE
 );

@@ -1,26 +1,29 @@
 package com.cms.ui.views;
 
 import com.cms.di.AppFactory;
+import com.cms.domain.Attachment;
 import com.cms.domain.ClinicalHistory;
 import com.cms.domain.Patient;
-import com.cms.repository.ClinicalHistoryRepository;
+import com.cms.presenter.ClinicalHistoryContract;
 import com.cms.repository.PatientRepository;
 import com.cms.ui.MainFrame;
+import com.cms.ui.components.IconFactory;
 import com.cms.ui.dialogs.ClinicalHistoryDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-public class ClinicalHistoryView extends JPanel implements MainFrame.RefreshableView {
+public class ClinicalHistoryView extends JPanel implements MainFrame.RefreshableView, ClinicalHistoryContract.View {
 
     private static final Color PRIMARY = new Color(59, 130, 246);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    private final ClinicalHistoryRepository historyRepository;
+    private final ClinicalHistoryContract.Presenter presenter;
     private final PatientRepository patientRepository;
     private final MainFrame mainFrame;
     private JTable historyTable;
@@ -30,8 +33,8 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
     public ClinicalHistoryView(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
         AppFactory factory = AppFactory.getInstance();
-        this.historyRepository = factory.getClinicalHistoryRepository();
         this.patientRepository = factory.getPatientRepository();
+        this.presenter = factory.getClinicalHistoryPresenter(this);
 
         setLayout(new BorderLayout());
         setBackground(new Color(241, 245, 249));
@@ -40,7 +43,7 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         add(createHeader(), BorderLayout.NORTH);
         add(createContent(), BorderLayout.CENTER);
 
-        loadHistories();
+        presenter.loadAllHistories();
     }
 
     private JPanel createHeader() {
@@ -64,8 +67,10 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         titlePanel.add(Box.createVerticalStrut(5));
         titlePanel.add(subtitle);
 
-        JButton addButton = new JButton("➕ Nueva Consulta");
+        JButton addButton = new JButton("Nueva Consulta",
+                IconFactory.createPlusIcon(14, Color.WHITE));
         addButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        addButton.setIconTextGap(6);
         addButton.setBackground(PRIMARY);
         addButton.setForeground(Color.WHITE);
         addButton.setFocusPainted(false);
@@ -123,29 +128,27 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         historyTable.getColumnModel().getColumn(3).setPreferredWidth(200);
         historyTable.getColumnModel().getColumn(4).setPreferredWidth(200);
         historyTable.getColumnModel().getColumn(5).setPreferredWidth(120);
-        historyTable.getColumnModel().getColumn(6).setPreferredWidth(100);
+        historyTable.getColumnModel().getColumn(6).setPreferredWidth(160);
 
         historyTable.getColumnModel().getColumn(6)
                 .setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
-                    JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
-                    panel.setOpaque(false);
+                    JPanel panel = new JPanel();
+                    panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+                    panel.setOpaque(true);
+                    panel.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                    panel.add(Box.createHorizontalGlue());
 
-                    JButton viewBtn = new JButton("👁️");
-                    viewBtn.setToolTipText("Ver detalles");
-                    viewBtn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
-                    viewBtn.setPreferredSize(new Dimension(35, 30));
-                    viewBtn.setBackground(new Color(219, 234, 254));
-                    viewBtn.setBorderPainted(false);
-
-                    JButton editBtn = new JButton("✏️");
-                    editBtn.setToolTipText("Editar");
-                    editBtn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
-                    editBtn.setPreferredSize(new Dimension(35, 30));
-                    editBtn.setBackground(new Color(254, 243, 199));
-                    editBtn.setBorderPainted(false);
+                    JButton viewBtn = createTextIconButton("Ver",
+                            IconFactory.createSearchIcon(12, new Color(59, 130, 246)),
+                            new Color(219, 234, 254), new Color(59, 130, 246));
+                    JButton editBtn = createTextIconButton("Editar",
+                            IconFactory.createEditIcon(12, new Color(180, 140, 50)),
+                            new Color(254, 243, 199), new Color(180, 140, 50));
 
                     panel.add(viewBtn);
+                    panel.add(Box.createHorizontalStrut(4));
                     panel.add(editBtn);
+                    panel.add(Box.createHorizontalGlue());
                     return panel;
                 });
 
@@ -156,8 +159,9 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
                 int row = historyTable.rowAtPoint(e.getPoint());
                 if (column == 6 && row >= 0) {
                     int x = e.getPoint().x - historyTable.getCellRect(row, column, true).x;
+                    int id = (int) tableModel.getValueAt(row, 0);
                     if (x < 45) {
-                        viewHistoryDetails(row);
+                        presenter.selectHistory(id);
                     } else if (x < 90) {
                         editHistory(row);
                     }
@@ -174,9 +178,58 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         return content;
     }
 
-    private void loadHistories() {
+    private void filterByPatient() {
+        PatientItem selected = (PatientItem) patientCombo.getSelectedItem();
+        if (selected == null || selected.id == null) {
+            presenter.loadAllHistories();
+        } else {
+            presenter.loadHistoriesByPatient(selected.id);
+        }
+    }
+
+    public void showNewConsultationDialog() {
+        ClinicalHistoryDialog dialog = new ClinicalHistoryDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this), null);
+        dialog.setOnSaveCallback(saved -> {
+            presenter.loadAllHistories();
+            refreshPatientCombo();
+        });
+        dialog.setVisible(true);
+    }
+
+    public void selectPatient(Integer patientId) {
+        for (int i = 0; i < patientCombo.getItemCount(); i++) {
+            PatientItem item = patientCombo.getItemAt(i);
+            if (item.id != null && item.id.equals(patientId)) {
+                patientCombo.setSelectedIndex(i);
+                filterByPatient();
+                break;
+            }
+        }
+    }
+
+    private void editHistory(int row) {
+        int id = (int) tableModel.getValueAt(row, 0);
+        presenter.selectHistory(id);
+    }
+
+    private void refreshPatientCombo() {
+        PatientItem selected = (PatientItem) patientCombo.getSelectedItem();
+        patientCombo.removeAllItems();
+        patientCombo.addItem(new PatientItem(null, "Todos los pacientes"));
+        for (Patient p : patientRepository.findAll()) {
+            patientCombo.addItem(new PatientItem(p.getId(), p.getNombreCompleto() + " - " + p.getCedula()));
+        }
+        if (selected != null && selected.id != null) {
+            selectPatient(selected.id);
+        }
+    }
+
+    // --- Implementación de ClinicalHistoryContract.View ---
+
+    @Override
+    public void showHistories(List<ClinicalHistory> histories) {
         tableModel.setRowCount(0);
-        List<ClinicalHistory> histories = historyRepository.findAll();
         for (ClinicalHistory history : histories) {
             String patientName = "";
             if (history.getPatientId() != null) {
@@ -197,122 +250,97 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         }
     }
 
-    private void filterByPatient() {
-        PatientItem selected = (PatientItem) patientCombo.getSelectedItem();
-        if (selected == null || selected.id == null) {
-            loadHistories();
-        } else {
-            tableModel.setRowCount(0);
-            List<ClinicalHistory> histories = historyRepository.findByPatientId(selected.id);
-            for (ClinicalHistory history : histories) {
-                tableModel.addRow(new Object[] {
-                        history.getId(),
-                        selected.display,
-                        history.getFechaConsulta() != null ? history.getFechaConsulta().format(DATE_FORMATTER) : "",
-                        history.getMotivoConsulta(),
-                        history.getDiagnostico(),
-                        history.getMedico(),
-                        ""
-                });
-            }
-        }
+    @Override
+    public void showHistoryDetails(ClinicalHistory history) {
+        String patientName = patientRepository.findById(history.getPatientId())
+                .map(Patient::getNombreCompleto)
+                .orElse("Desconocido");
+
+        String details = String.format("""
+                Paciente: %s
+                Fecha: %s
+                Motivo: %s
+
+                Antecedentes:
+                %s
+
+                Examen Físico:
+                %s
+
+                Diagnóstico:
+                %s
+
+                Conducta:
+                %s
+
+                Observaciones:
+                %s
+
+                Médico: %s
+                """,
+                patientName,
+                history.getFechaConsulta() != null ? history.getFechaConsulta().format(DATE_FORMATTER) : "N/A",
+                history.getMotivoConsulta(),
+                history.getAntecedentes() != null ? history.getAntecedentes() : "N/A",
+                history.getExamenFisico() != null ? history.getExamenFisico() : "N/A",
+                history.getDiagnostico() != null ? history.getDiagnostico() : "N/A",
+                history.getConducta() != null ? history.getConducta() : "N/A",
+                history.getObservaciones() != null ? history.getObservaciones() : "N/A",
+                history.getMedico() != null ? history.getMedico() : "N/A");
+
+        JTextArea textArea = new JTextArea(details);
+        textArea.setEditable(false);
+        textArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(500, 450));
+
+        JOptionPane.showMessageDialog(this, scrollPane, "Detalles de Consulta", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    public void showNewConsultationDialog() {
-        ClinicalHistoryDialog dialog = new ClinicalHistoryDialog(
-                (Frame) SwingUtilities.getWindowAncestor(this), null);
-        dialog.setOnSaveCallback(saved -> {
-            loadHistories();
-            refreshPatientCombo();
-        });
-        dialog.setVisible(true);
+    @Override
+    public void showAttachments(List<Attachment> attachments) {
+        // Implementation for showing attachments in a panel or dialog
+        // This would typically update a list component in the UI
     }
 
-    public void selectPatient(Integer patientId) {
-        for (int i = 0; i < patientCombo.getItemCount(); i++) {
-            PatientItem item = patientCombo.getItemAt(i);
-            if (item.id != null && item.id.equals(patientId)) {
-                patientCombo.setSelectedIndex(i);
-                filterByPatient();
-                break;
-            }
-        }
+    @Override
+    public void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    private void editHistory(int row) {
-        int id = (int) tableModel.getValueAt(row, 0);
-        historyRepository.findById(id).ifPresent(history -> {
-            ClinicalHistoryDialog dialog = new ClinicalHistoryDialog(
-                    (Frame) SwingUtilities.getWindowAncestor(this), history);
-            dialog.setOnSaveCallback(saved -> loadHistories());
-            dialog.setVisible(true);
-        });
+    @Override
+    public void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this, message, "Éxito", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private void viewHistoryDetails(int row) {
-        int id = (int) tableModel.getValueAt(row, 0);
-        historyRepository.findById(id).ifPresent(history -> {
-            String patientName = patientRepository.findById(history.getPatientId())
-                    .map(Patient::getNombreCompleto)
-                    .orElse("Desconocido");
-
-            String details = String.format("""
-                    Paciente: %s
-                    Fecha: %s
-                    Motivo: %s
-
-                    Antecedentes:
-                    %s
-
-                    Examen Físico:
-                    %s
-
-                    Diagnóstico:
-                    %s
-
-                    Conducta:
-                    %s
-
-                    Observaciones:
-                    %s
-
-                    Médico: %s
-                    """,
-                    patientName,
-                    history.getFechaConsulta() != null ? history.getFechaConsulta().format(DATE_FORMATTER) : "N/A",
-                    history.getMotivoConsulta(),
-                    history.getAntecedentes() != null ? history.getAntecedentes() : "N/A",
-                    history.getExamenFisico() != null ? history.getExamenFisico() : "N/A",
-                    history.getDiagnostico() != null ? history.getDiagnostico() : "N/A",
-                    history.getConducta() != null ? history.getConducta() : "N/A",
-                    history.getObservaciones() != null ? history.getObservaciones() : "N/A",
-                    history.getMedico() != null ? history.getMedico() : "N/A");
-
-            JTextArea textArea = new JTextArea(details);
-            textArea.setEditable(false);
-            textArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-            JScrollPane scrollPane = new JScrollPane(textArea);
-            scrollPane.setPreferredSize(new Dimension(500, 450));
-
-            JOptionPane.showMessageDialog(this, scrollPane, "Detalles de Consulta", JOptionPane.INFORMATION_MESSAGE);
-        });
+    @Override
+    public void showLoading(boolean loading) {
+        setCursor(loading ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
     }
 
-    private void refreshPatientCombo() {
-        PatientItem selected = (PatientItem) patientCombo.getSelectedItem();
-        patientCombo.removeAllItems();
-        patientCombo.addItem(new PatientItem(null, "Todos los pacientes"));
-        for (Patient p : patientRepository.findAll()) {
-            patientCombo.addItem(new PatientItem(p.getId(), p.getNombreCompleto() + " - " + p.getCedula()));
-        }
-        if (selected != null && selected.id != null) {
-            selectPatient(selected.id);
+    @Override
+    public void clearForm() {
+        // Clear any form fields if applicable
+    }
+
+    @Override
+    public void showImagePreview(BufferedImage image, String fileName) {
+        // Show image preview in a dialog
+        if (image != null) {
+            ImageIcon icon = new ImageIcon(image.getScaledInstance(400, -1, Image.SCALE_SMOOTH));
+            JLabel label = new JLabel(icon);
+            JOptionPane.showMessageDialog(this, label, "Vista previa: " + fileName, JOptionPane.PLAIN_MESSAGE);
         }
     }
 
     @Override
+    public void updateAttachmentsList() {
+        // Refresh attachments list if displayed
+    }
+
+    @Override
     public void refresh() {
-        loadHistories();
+        presenter.loadAllHistories();
         refreshPatientCombo();
     }
 
@@ -321,5 +349,31 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         public String toString() {
             return display;
         }
+    }
+
+    private JButton createIconButton(Icon icon, Color bgColor, String tooltip) {
+        JButton btn = new JButton(icon);
+        btn.setToolTipText(tooltip);
+        btn.setBackground(bgColor);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setMargin(new Insets(4, 8, 4, 8));
+        btn.setPreferredSize(new Dimension(36, 28));
+        btn.setMaximumSize(new Dimension(36, 28));
+        return btn;
+    }
+
+    private JButton createTextIconButton(String text, Icon icon, Color bgColor, Color fgColor) {
+        JButton btn = new JButton(text, icon);
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        btn.setBackground(bgColor);
+        btn.setForeground(fgColor);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setIconTextGap(4);
+        btn.setMargin(new Insets(2, 6, 2, 6));
+        btn.setPreferredSize(new Dimension(70, 28));
+        btn.setMaximumSize(new Dimension(70, 28));
+        return btn;
     }
 }

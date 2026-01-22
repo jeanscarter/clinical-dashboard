@@ -142,7 +142,7 @@ public class LoginFrame extends JFrame {
         footer.setOpaque(false);
         footer.setBorder(new EmptyBorder(10, 0, 20, 0));
 
-        JLabel footerLabel = new JLabel("© 2024 Clinical Management System");
+        JLabel footerLabel = new JLabel("© 2026 Clinical Management System");
         footerLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         footerLabel.setForeground(new Color(148, 163, 184));
         footer.add(footerLabel);

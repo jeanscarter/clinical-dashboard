@@ -11,6 +11,7 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class NavigationDrawer extends JPanel {
 
@@ -73,32 +74,39 @@ public class NavigationDrawer extends JPanel {
         navPanel.setBackground(DRAWER_BG);
         navPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        addNavItem(navPanel, "dashboard", "Dashboard", "📊");
-        addNavItem(navPanel, "pacientes", "Pacientes", "👥");
-        addNavItem(navPanel, "historias", "Historias Clínicas", "📋");
-        addNavItem(navPanel, "reportes", "Reportes", "📈");
+        addNavItem(navPanel, "dashboard", "Dashboard",
+                c -> IconFactory.createChartIcon(18, c));
+        addNavItem(navPanel, "pacientes", "Pacientes",
+                c -> IconFactory.createUsersIcon(18, c));
+        addNavItem(navPanel, "historias", "Historias Clínicas",
+                c -> IconFactory.createDocumentIcon(18, c));
+        addNavItem(navPanel, "reportes", "Reportes",
+                c -> IconFactory.createReportIcon(18, c));
 
         navPanel.add(Box.createVerticalStrut(20));
+
+        // Configuración siempre visible
+        addNavItem(navPanel, "settings", "Configuración",
+                c -> IconFactory.createSettingsIcon(18, c));
 
         User currentUser = SecurityContext.getCurrentUser();
         if (currentUser != null && currentUser.getRole().canManageUsers()) {
-            addNavItem(navPanel, "usuarios", "Usuarios", "👤");
+            addNavItem(navPanel, "usuarios", "Usuarios",
+                    c -> IconFactory.createUserIcon(18, c));
         }
         if (currentUser != null && currentUser.getRole().canManageBackups()) {
-            addNavItem(navPanel, "respaldo", "Respaldo", "💾");
+            addNavItem(navPanel, "respaldo", "Respaldo",
+                    c -> IconFactory.createDocumentIcon(18, c));
         }
-
-        navPanel.add(Box.createVerticalStrut(20));
-
-        addNavItem(navPanel, "settings", "Configuración", "⚙️");
 
         navPanel.add(Box.createVerticalGlue());
 
         return navPanel;
     }
 
-    private void addNavItem(JPanel parent, String id, String label, String icon) {
-        NavItem item = new NavItem(id, label, icon);
+    private void addNavItem(JPanel parent, String id, String label,
+            Function<Color, Icon> iconFactory) {
+        NavItem item = new NavItem(id, label, iconFactory);
         navItems.add(item);
         parent.add(item);
         parent.add(Box.createVerticalStrut(5));
@@ -117,8 +125,7 @@ public class NavigationDrawer extends JPanel {
         userPanel.setBackground(DRAWER_BG);
         userPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        JLabel userIcon = new JLabel("👤");
-        userIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
+        JLabel userIcon = new JLabel(IconFactory.createUserIcon(20, TEXT_COLOR));
         userIcon.setBorder(new EmptyBorder(0, 0, 0, 10));
 
         JPanel userInfo = new JPanel();
@@ -168,10 +175,12 @@ public class NavigationDrawer extends JPanel {
         private final String id;
         private final JLabel iconLabel;
         private final JLabel textLabel;
+        private final Function<Color, Icon> iconFactory;
         private boolean isHovered = false;
 
-        public NavItem(String id, String text, String icon) {
+        public NavItem(String id, String text, Function<Color, Icon> iconFactory) {
             this.id = id;
+            this.iconFactory = iconFactory;
 
             setLayout(new BorderLayout());
             setBackground(DRAWER_BG);
@@ -179,8 +188,7 @@ public class NavigationDrawer extends JPanel {
             setBorder(new EmptyBorder(10, 15, 10, 15));
             setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            iconLabel = new JLabel(icon);
-            iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+            iconLabel = new JLabel(iconFactory.apply(TEXT_COLOR));
             iconLabel.setBorder(new EmptyBorder(0, 0, 0, 12));
 
             textLabel = new JLabel(text);
@@ -212,16 +220,21 @@ public class NavigationDrawer extends JPanel {
 
         public void updateState() {
             boolean isActive = id.equalsIgnoreCase(activeItem);
+            Color iconColor;
             if (isActive) {
                 setBackground(ITEM_ACTIVE);
                 textLabel.setForeground(Color.WHITE);
+                iconColor = Color.WHITE;
             } else if (isHovered) {
                 setBackground(ITEM_HOVER);
                 textLabel.setForeground(TEXT_COLOR);
+                iconColor = TEXT_COLOR;
             } else {
                 setBackground(DRAWER_BG);
                 textLabel.setForeground(TEXT_COLOR);
+                iconColor = TEXT_COLOR;
             }
+            iconLabel.setIcon(iconFactory.apply(iconColor));
             repaint();
         }
     }

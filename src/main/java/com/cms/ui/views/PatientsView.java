@@ -2,25 +2,22 @@ package com.cms.ui.views;
 
 import com.cms.di.AppFactory;
 import com.cms.domain.Patient;
-import com.cms.repository.PatientRepository;
+import com.cms.presenter.PatientContract;
 import com.cms.ui.MainFrame;
+import com.cms.ui.components.IconFactory;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
-public class PatientsView extends JPanel implements MainFrame.RefreshableView {
+public class PatientsView extends JPanel implements MainFrame.RefreshableView, PatientContract.View {
 
     private static final Color PRIMARY = new Color(59, 130, 246);
-    private static final Color SUCCESS = new Color(34, 197, 94);
-    private static final Color DANGER = new Color(239, 68, 68);
-
-    private final PatientRepository patientRepository;
+    private final PatientContract.Presenter presenter;
     private final MainFrame mainFrame;
     private JTable patientsTable;
     private DefaultTableModel tableModel;
@@ -28,7 +25,8 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView {
 
     public PatientsView(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
-        this.patientRepository = AppFactory.getInstance().getPatientRepository();
+        // Se inicializa el presenter DESDE la factory
+        this.presenter = AppFactory.getInstance().getPatientPresenter(this);
 
         setLayout(new BorderLayout());
         setBackground(new Color(241, 245, 249));
@@ -37,8 +35,76 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView {
         add(createHeader(), BorderLayout.NORTH);
         add(createContent(), BorderLayout.CENTER);
 
-        loadPatients();
+        presenter.loadPatients();
     }
+
+    // --- Métodos Requeridos por MainFrame ---
+
+    public void showNewPatientDialog() {
+        showPatientDialog(null);
+    }
+
+    public void focusSearchField() {
+        SwingUtilities.invokeLater(() -> {
+            searchField.requestFocusInWindow();
+            searchField.selectAll();
+        });
+    }
+
+    // --- Implementación de PatientContract.View ---
+
+    @Override
+    public void showPatients(List<Patient> patients) {
+        tableModel.setRowCount(0);
+        for (Patient patient : patients) {
+            tableModel.addRow(new Object[] {
+                    patient.getId(),
+                    patient.getCedula(),
+                    patient.getNombre(),
+                    patient.getApellido(),
+                    patient.getTelefono(),
+                    patient.getEmail(),
+                    ""
+            });
+        }
+    }
+
+    @Override
+    public void showLoading(boolean loading) {
+        setCursor(loading ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
+    }
+
+    @Override
+    public void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    @Override
+    public void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this, message, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    @Override
+    public void showPatientDetails(Patient patient) {
+        showPatientDialog(patient);
+    }
+
+    @Override
+    public void clearForm() {
+    }
+
+    @Override
+    public void navigateToHistory(Patient patient) {
+        // Lógica de navegación a través del MainFrame
+        mainFrame.navigateToWithAction("history", "select_patient", patient.getId());
+    }
+
+    @Override
+    public void refresh() {
+        presenter.loadPatients();
+    }
+
+    // --- Componentes UI ---
 
     private JPanel createHeader() {
         JPanel header = new JPanel(new BorderLayout());
@@ -61,15 +127,17 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView {
         titlePanel.add(Box.createVerticalStrut(5));
         titlePanel.add(subtitle);
 
-        JButton addButton = new JButton("➕ Nuevo Paciente");
+        JButton addButton = new JButton("Nuevo Paciente",
+                IconFactory.createPlusIcon(14, Color.WHITE));
         addButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        addButton.setIconTextGap(6);
         addButton.setBackground(PRIMARY);
         addButton.setForeground(Color.WHITE);
         addButton.setFocusPainted(false);
         addButton.setBorderPainted(false);
         addButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         addButton.setPreferredSize(new Dimension(160, 40));
-        addButton.addActionListener(e -> showPatientDialog(null));
+        addButton.addActionListener(e -> showNewPatientDialog());
 
         header.add(titlePanel, BorderLayout.WEST);
         header.add(addButton, BorderLayout.EAST);
@@ -88,18 +156,31 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView {
         searchPanel.setOpaque(false);
         searchPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
 
+        // Panel con icono de búsqueda y campo de texto
+        JPanel searchContainer = new JPanel(new BorderLayout());
+        searchContainer.setBackground(Color.WHITE);
+        searchContainer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225), 1),
+                new EmptyBorder(0, 10, 0, 0)));
+        searchContainer.setPreferredSize(new Dimension(350, 40));
+
+        JLabel searchIcon = new JLabel(IconFactory.createSearchIcon(16, new Color(148, 163, 184)));
+        searchIcon.setBorder(new EmptyBorder(0, 0, 0, 8));
+
         searchField = new JTextField();
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.putClientProperty("JTextField.placeholderText", "🔍 Buscar por nombre, apellido o cédula...");
-        searchField.setPreferredSize(new Dimension(300, 40));
+        searchField.setBorder(BorderFactory.createEmptyBorder());
+        searchField.putClientProperty("JTextField.placeholderText", "Buscar por nombre, apellido o cédula...");
         searchField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
-                filterTable(searchField.getText());
+                presenter.searchPatients(searchField.getText());
             }
         });
 
-        searchPanel.add(searchField, BorderLayout.WEST);
+        searchContainer.add(searchIcon, BorderLayout.WEST);
+        searchContainer.add(searchField, BorderLayout.CENTER);
+        searchPanel.add(searchContainer, BorderLayout.WEST);
 
         String[] columns = { "ID", "Cédula", "Nombre", "Apellido", "Teléfono", "Email", "Acciones" };
         tableModel = new DefaultTableModel(columns, 0) {
@@ -112,41 +193,27 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView {
         patientsTable = new JTable(tableModel);
         patientsTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         patientsTable.setRowHeight(45);
-        patientsTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         patientsTable.getTableHeader().setBackground(new Color(248, 250, 252));
-        patientsTable.setSelectionBackground(new Color(219, 234, 254));
-        patientsTable.setGridColor(new Color(226, 232, 240));
 
-        patientsTable.getColumnModel().getColumn(0).setPreferredWidth(50);
-        patientsTable.getColumnModel().getColumn(1).setPreferredWidth(100);
-        patientsTable.getColumnModel().getColumn(2).setPreferredWidth(150);
-        patientsTable.getColumnModel().getColumn(3).setPreferredWidth(150);
-        patientsTable.getColumnModel().getColumn(4).setPreferredWidth(120);
-        patientsTable.getColumnModel().getColumn(5).setPreferredWidth(180);
-        patientsTable.getColumnModel().getColumn(6).setPreferredWidth(150);
-
+        patientsTable.getColumnModel().getColumn(6).setMinWidth(180);
+        patientsTable.getColumnModel().getColumn(6).setPreferredWidth(180);
         patientsTable.getColumnModel().getColumn(6)
                 .setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
-                    JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
-                    panel.setOpaque(false);
-
-                    JButton editBtn = new JButton("✏️");
-                    editBtn.setToolTipText("Editar");
-                    editBtn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
-                    editBtn.setPreferredSize(new Dimension(35, 30));
-                    editBtn.setBackground(new Color(219, 234, 254));
-                    editBtn.setBorderPainted(false);
-
-                    JButton deleteBtn = new JButton("🗑️");
-                    deleteBtn.setToolTipText("Eliminar");
-                    deleteBtn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
-                    deleteBtn.setPreferredSize(new Dimension(35, 30));
-                    deleteBtn.setBackground(new Color(254, 226, 226));
-                    deleteBtn.setBorderPainted(false);
-
+                    JPanel panel = new JPanel();
+                    panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+                    panel.setOpaque(true);
+                    panel.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                    panel.add(Box.createHorizontalGlue());
+                    JButton editBtn = createTextIconButton("Editar",
+                            IconFactory.createEditIcon(12, new Color(59, 130, 246)),
+                            new Color(219, 234, 254), new Color(59, 130, 246));
+                    JButton deleteBtn = createTextIconButton("Eliminar",
+                            IconFactory.createDeleteIcon(12, new Color(220, 38, 38)),
+                            new Color(254, 226, 226), new Color(220, 38, 38));
                     panel.add(editBtn);
+                    panel.add(Box.createHorizontalStrut(4));
                     panel.add(deleteBtn);
-
+                    panel.add(Box.createHorizontalGlue());
                     return panel;
                 });
 
@@ -156,85 +223,44 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView {
                 int column = patientsTable.columnAtPoint(e.getPoint());
                 int row = patientsTable.rowAtPoint(e.getPoint());
                 if (column == 6 && row >= 0) {
+                    int id = (int) tableModel.getValueAt(row, 0);
                     Rectangle cellRect = patientsTable.getCellRect(row, column, true);
                     int xInCell = e.getPoint().x - cellRect.x;
-                    int cellWidth = cellRect.width;
-
-                    // Button layout: FlowLayout.CENTER with 5px horizontal gap
-                    // Each button is 35px wide
-                    // Total buttons width = 35 + 5 + 35 = 75px
-                    int buttonWidth = 35;
-                    int buttonGap = 5;
-                    int buttonsWidth = buttonWidth + buttonGap + buttonWidth;
-                    int startX = (cellWidth - buttonsWidth) / 2;
-                    int editEnd = startX + buttonWidth;
-                    int deleteStart = editEnd + buttonGap;
-                    int deleteEnd = deleteStart + buttonWidth;
-
-                    if (xInCell >= startX && xInCell < editEnd) {
-                        editPatient(row);
-                    } else if (xInCell >= deleteStart && xInCell < deleteEnd) {
-                        deletePatient(row);
+                    if (xInCell < cellRect.width / 2) {
+                        presenter.selectPatient(id);
+                    } else {
+                        confirmDelete(id, tableModel.getValueAt(row, 2) + " " + tableModel.getValueAt(row, 3));
                     }
-                    // Clicks outside button areas do nothing
                 }
             }
         });
 
         JScrollPane scrollPane = new JScrollPane(patientsTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-
         content.add(searchPanel, BorderLayout.NORTH);
         content.add(scrollPane, BorderLayout.CENTER);
 
         return content;
     }
 
-    private void loadPatients() {
-        tableModel.setRowCount(0);
-        List<Patient> patients = patientRepository.findAll();
-        for (Patient patient : patients) {
-            tableModel.addRow(new Object[] {
-                    patient.getId(),
-                    patient.getCedula(),
-                    patient.getNombre(),
-                    patient.getApellido(),
-                    patient.getTelefono(),
-                    patient.getEmail(),
-                    ""
-            });
+    private void confirmDelete(int id, String name) {
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Está seguro de eliminar al paciente " + name + "?",
+                "Confirmar", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            presenter.deletePatient(id);
         }
-    }
-
-    private void filterTable(String query) {
-        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
-        patientsTable.setRowSorter(sorter);
-        if (query.trim().isEmpty()) {
-            sorter.setRowFilter(null);
-        } else {
-            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + query));
-        }
-    }
-
-    public void showNewPatientDialog() {
-        showPatientDialog(null);
-    }
-
-    public void focusSearchField() {
-        SwingUtilities.invokeLater(() -> {
-            searchField.requestFocusInWindow();
-            searchField.selectAll();
-        });
     }
 
     private void showPatientDialog(Patient patient) {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
                 patient == null ? "Nuevo Paciente" : "Editar Paciente", true);
-        dialog.setSize(500, 450);
+        dialog.setSize(500, 550);
         dialog.setLocationRelativeTo(this);
 
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(new EmptyBorder(20, 20, 20, 20));
+        form.setBackground(Color.WHITE);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(8, 8, 8, 8);
@@ -247,27 +273,33 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView {
         JTextField direccionField = new JTextField(patient != null ? patient.getDireccion() : "");
 
         int row = 0;
-        addFormField(form, gbc, row++, "Cédula *", cedulaField);
-        addFormField(form, gbc, row++, "Nombre *", nombreField);
-        addFormField(form, gbc, row++, "Apellido", apellidoField);
-        addFormField(form, gbc, row++, "Teléfono", telefonoField);
-        addFormField(form, gbc, row++, "Email", emailField);
-        addFormField(form, gbc, row++, "Dirección", direccionField);
+        addFormField(form, gbc, row++, "Cédula: *", cedulaField);
+        addFormField(form, gbc, row++, "Nombre: *", nombreField);
+        addFormField(form, gbc, row++, "Apellido:", apellidoField);
+        addFormField(form, gbc, row++, "Teléfono:", telefonoField);
+        addFormField(form, gbc, row++, "Email:", emailField);
+        addFormField(form, gbc, row++, "Dirección:", direccionField);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBackground(new Color(248, 250, 252));
+        buttonPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
+
         JButton cancelBtn = new JButton("Cancelar");
-        cancelBtn.addActionListener(e -> dialog.dispose());
+        cancelBtn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cancelBtn.setPreferredSize(new Dimension(100, 35));
+        cancelBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JButton saveBtn = new JButton("Guardar");
+        saveBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
         saveBtn.setBackground(PRIMARY);
         saveBtn.setForeground(Color.WHITE);
-        saveBtn.addActionListener(e -> {
-            if (cedulaField.getText().trim().isEmpty() || nombreField.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(dialog, "Cédula y Nombre son obligatorios", "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+        saveBtn.setPreferredSize(new Dimension(100, 35));
+        saveBtn.setBorderPainted(false);
+        saveBtn.setFocusPainted(false);
+        saveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
+        cancelBtn.addActionListener(e -> dialog.dispose());
+        saveBtn.addActionListener(e -> {
             Patient p = patient != null ? patient : new Patient();
             p.setCedula(cedulaField.getText().trim());
             p.setNombre(nombreField.getText().trim());
@@ -276,59 +308,57 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView {
             p.setEmail(emailField.getText().trim());
             p.setDireccion(direccionField.getText().trim());
 
-            patientRepository.save(p);
-            loadPatients();
+            if (patient == null) {
+                presenter.savePatient(p);
+            } else {
+                presenter.updatePatient(p);
+            }
             dialog.dispose();
         });
 
         buttonPanel.add(cancelBtn);
         buttonPanel.add(saveBtn);
 
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 2;
-        form.add(buttonPanel, gbc);
-
-        dialog.add(form);
+        dialog.setLayout(new BorderLayout());
+        dialog.add(form, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
         dialog.setVisible(true);
     }
 
     private void addFormField(JPanel form, GridBagConstraints gbc, int row, String label, JTextField field) {
         gbc.gridx = 0;
         gbc.gridy = row;
-        gbc.gridwidth = 1;
         gbc.weightx = 0.3;
         form.add(new JLabel(label), gbc);
-
         gbc.gridx = 1;
         gbc.weightx = 0.7;
         field.setPreferredSize(new Dimension(250, 35));
         form.add(field, gbc);
     }
 
-    private void editPatient(int row) {
-        int id = (int) tableModel.getValueAt(row, 0);
-        patientRepository.findById(id).ifPresent(this::showPatientDialog);
+    private JButton createIconButton(Icon icon, Color bgColor, String tooltip) {
+        JButton btn = new JButton(icon);
+        btn.setToolTipText(tooltip);
+        btn.setBackground(bgColor);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setMargin(new Insets(4, 8, 4, 8));
+        btn.setPreferredSize(new Dimension(36, 28));
+        btn.setMaximumSize(new Dimension(36, 28));
+        return btn;
     }
 
-    private void deletePatient(int row) {
-        int id = (int) tableModel.getValueAt(row, 0);
-        String nombre = tableModel.getValueAt(row, 2) + " " + tableModel.getValueAt(row, 3);
-
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "¿Está seguro de eliminar al paciente " + nombre + "?",
-                "Confirmar eliminación",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            patientRepository.delete(id);
-            loadPatients();
-        }
-    }
-
-    @Override
-    public void refresh() {
-        loadPatients();
+    private JButton createTextIconButton(String text, Icon icon, Color bgColor, Color fgColor) {
+        JButton btn = new JButton(text, icon);
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        btn.setBackground(bgColor);
+        btn.setForeground(fgColor);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setIconTextGap(4);
+        btn.setMargin(new Insets(2, 6, 2, 6));
+        btn.setPreferredSize(new Dimension(80, 28));
+        btn.setMaximumSize(new Dimension(80, 28));
+        return btn;
     }
 }

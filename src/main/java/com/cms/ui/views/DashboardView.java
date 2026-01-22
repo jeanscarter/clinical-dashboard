@@ -4,11 +4,14 @@ import com.cms.di.AppFactory;
 import com.cms.repository.PatientRepository;
 import com.cms.repository.ClinicalHistoryRepository;
 import com.cms.ui.MainFrame;
+import com.cms.ui.components.IconFactory;
 import com.cms.ui.dialogs.ReportsDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class DashboardView extends JPanel {
 
@@ -70,11 +73,16 @@ public class DashboardView extends JPanel {
 
         long totalPatients = patientRepository.count();
         long totalConsultas = clinicalHistoryRepository.count();
+        long consultasHoy = countConsultasHoy();
 
-        statsGrid.add(createStatCard("Total Pacientes", String.valueOf(totalPatients), "👥", PRIMARY));
-        statsGrid.add(createStatCard("Consultas Hoy", "0", "📋", SUCCESS));
-        statsGrid.add(createStatCard("Total Consultas", String.valueOf(totalConsultas), "📊", INFO));
-        statsGrid.add(createStatCard("Pendientes", "0", "⏳", WARNING));
+        statsGrid.add(createStatCard("Total Pacientes", String.valueOf(totalPatients),
+                IconFactory.createUsersIcon(24, new Color(100, 116, 139)), PRIMARY));
+        statsGrid.add(createStatCard("Consultas Hoy", String.valueOf(consultasHoy),
+                IconFactory.createCalendarIcon(24, new Color(100, 116, 139)), SUCCESS));
+        statsGrid.add(createStatCard("Total Consultas", String.valueOf(totalConsultas),
+                IconFactory.createDocumentIcon(24, new Color(100, 116, 139)), INFO));
+        statsGrid.add(createStatCard("Pendientes", "0",
+                IconFactory.createClockIcon(24, new Color(100, 116, 139)), WARNING));
 
         content.add(statsGrid, BorderLayout.NORTH);
 
@@ -90,7 +98,7 @@ public class DashboardView extends JPanel {
         return content;
     }
 
-    private JPanel createStatCard(String title, String value, String icon, Color accentColor) {
+    private JPanel createStatCard(String title, String value, Icon icon, Color accentColor) {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
@@ -101,7 +109,7 @@ public class DashboardView extends JPanel {
         topRow.setOpaque(false);
 
         JLabel iconLabel = new JLabel(icon);
-        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
+        iconLabel.setPreferredSize(new Dimension(28, 28));
 
         JPanel accentDot = new JPanel() {
             @Override
@@ -213,28 +221,32 @@ public class DashboardView extends JPanel {
         JPanel actionsPanel = new JPanel(new GridLayout(2, 2, 10, 10));
         actionsPanel.setOpaque(false);
 
-        JButton newPatientBtn = createActionButton("Nuevo Paciente", "➕", PRIMARY);
+        JButton newPatientBtn = createActionButton("Nuevo Paciente",
+                IconFactory.createPlusIcon(16, Color.WHITE), PRIMARY);
         newPatientBtn.addActionListener(e -> {
             if (mainFrame != null) {
                 mainFrame.navigateToWithAction("patients", "new_patient", null);
             }
         });
 
-        JButton newConsultaBtn = createActionButton("Nueva Consulta", "📝", SUCCESS);
+        JButton newConsultaBtn = createActionButton("Nueva Consulta",
+                IconFactory.createDocumentIcon(16, Color.WHITE), SUCCESS);
         newConsultaBtn.addActionListener(e -> {
             if (mainFrame != null) {
                 mainFrame.navigateToWithAction("history", "new_consultation", null);
             }
         });
 
-        JButton searchPatientBtn = createActionButton("Buscar Paciente", "🔍", INFO);
+        JButton searchPatientBtn = createActionButton("Buscar Paciente",
+                IconFactory.createSearchIcon(16, Color.WHITE), INFO);
         searchPatientBtn.addActionListener(e -> {
             if (mainFrame != null) {
                 mainFrame.navigateToWithAction("patients", "search_patient", null);
             }
         });
 
-        JButton reportsBtn = createActionButton("Reportes", "📈", WARNING);
+        JButton reportsBtn = createActionButton("Reportes",
+                IconFactory.createReportIcon(16, Color.WHITE), WARNING);
         reportsBtn.addActionListener(e -> showReportsDialog());
 
         actionsPanel.add(newPatientBtn);
@@ -248,8 +260,10 @@ public class DashboardView extends JPanel {
         return card;
     }
 
-    private JButton createActionButton(String text, String icon, Color bgColor) {
-        JButton button = new JButton(icon + "  " + text);
+    private JButton createActionButton(String text, Icon icon, Color bgColor) {
+        JButton button = new JButton(text, icon);
+        button.setHorizontalAlignment(SwingConstants.CENTER);
+        button.setIconTextGap(8);
         button.setFont(new Font("Segoe UI", Font.BOLD, 13));
         button.setBackground(bgColor);
         button.setForeground(Color.WHITE);
@@ -266,5 +280,11 @@ public class DashboardView extends JPanel {
                 patientRepository,
                 clinicalHistoryRepository);
         dialog.setVisible(true);
+    }
+
+    private long countConsultasHoy() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        return clinicalHistoryRepository.findByFechaConsultaBetween(startOfDay, endOfDay).size();
     }
 }

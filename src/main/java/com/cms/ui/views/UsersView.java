@@ -7,6 +7,7 @@ import com.cms.service.UserService;
 import com.cms.service.exception.BusinessException;
 import com.cms.service.exception.ValidationException;
 import com.cms.ui.MainFrame;
+import com.cms.ui.components.IconFactory;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -62,8 +63,10 @@ public class UsersView extends JPanel implements MainFrame.RefreshableView {
         titlePanel.add(Box.createVerticalStrut(5));
         titlePanel.add(subtitle);
 
-        JButton addButton = new JButton("➕ Nuevo Usuario");
+        JButton addButton = new JButton("Nuevo Usuario",
+                IconFactory.createPlusIcon(14, Color.WHITE));
         addButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        addButton.setIconTextGap(6);
         addButton.setBackground(PRIMARY);
         addButton.setForeground(Color.WHITE);
         addButton.setFocusPainted(false);
@@ -89,10 +92,21 @@ public class UsersView extends JPanel implements MainFrame.RefreshableView {
         searchPanel.setOpaque(false);
         searchPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
 
+        // Panel con icono de búsqueda y campo de texto
+        JPanel searchContainer = new JPanel(new BorderLayout());
+        searchContainer.setBackground(Color.WHITE);
+        searchContainer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225), 1),
+                new EmptyBorder(0, 10, 0, 0)));
+        searchContainer.setPreferredSize(new Dimension(350, 40));
+
+        JLabel searchIcon = new JLabel(IconFactory.createSearchIcon(16, new Color(148, 163, 184)));
+        searchIcon.setBorder(new EmptyBorder(0, 0, 0, 8));
+
         searchField = new JTextField();
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.putClientProperty("JTextField.placeholderText", "🔍 Buscar por nombre o usuario...");
-        searchField.setPreferredSize(new Dimension(300, 40));
+        searchField.setBorder(BorderFactory.createEmptyBorder());
+        searchField.putClientProperty("JTextField.placeholderText", "Buscar por nombre o usuario...");
         searchField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
@@ -100,7 +114,9 @@ public class UsersView extends JPanel implements MainFrame.RefreshableView {
             }
         });
 
-        searchPanel.add(searchField, BorderLayout.WEST);
+        searchContainer.add(searchIcon, BorderLayout.WEST);
+        searchContainer.add(searchField, BorderLayout.CENTER);
+        searchPanel.add(searchContainer, BorderLayout.WEST);
 
         String[] columns = { "ID", "Usuario", "Nombre Completo", "Rol", "Estado", "Último Acceso", "Acciones" };
         tableModel = new DefaultTableModel(columns, 0) {
@@ -142,33 +158,25 @@ public class UsersView extends JPanel implements MainFrame.RefreshableView {
 
         usersTable.getColumnModel().getColumn(6)
                 .setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
-                    JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
-                    panel.setOpaque(false);
+                    JPanel panel = new JPanel();
+                    panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+                    panel.setOpaque(true);
+                    panel.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                    panel.add(Box.createHorizontalGlue());
 
-                    JButton editBtn = new JButton("✏️");
-                    editBtn.setToolTipText("Editar");
-                    editBtn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
-                    editBtn.setPreferredSize(new Dimension(35, 30));
-                    editBtn.setBackground(new Color(219, 234, 254));
-                    editBtn.setBorderPainted(false);
-
-                    JButton resetBtn = new JButton("🔑");
-                    resetBtn.setToolTipText("Restablecer Contraseña");
-                    resetBtn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
-                    resetBtn.setPreferredSize(new Dimension(35, 30));
-                    resetBtn.setBackground(new Color(254, 243, 199));
-                    resetBtn.setBorderPainted(false);
-
-                    JButton toggleBtn = new JButton("⏻");
-                    toggleBtn.setToolTipText("Activar/Desactivar");
-                    toggleBtn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
-                    toggleBtn.setPreferredSize(new Dimension(35, 30));
-                    toggleBtn.setBackground(new Color(254, 226, 226));
-                    toggleBtn.setBorderPainted(false);
+                    JButton editBtn = createIconButton(IconFactory.createEditIcon(14, new Color(59, 130, 246)),
+                            new Color(219, 234, 254), "Editar");
+                    JButton resetBtn = createIconButton(IconFactory.createKeyIcon(14, new Color(180, 140, 50)),
+                            new Color(254, 243, 199), "Restablecer Contraseña");
+                    JButton toggleBtn = createIconButton(IconFactory.createPowerIcon(14, new Color(220, 38, 38)),
+                            new Color(254, 226, 226), "Activar/Desactivar");
 
                     panel.add(editBtn);
+                    panel.add(Box.createHorizontalStrut(4));
                     panel.add(resetBtn);
+                    panel.add(Box.createHorizontalStrut(4));
                     panel.add(toggleBtn);
+                    panel.add(Box.createHorizontalGlue());
 
                     return panel;
                 });
@@ -478,5 +486,17 @@ public class UsersView extends JPanel implements MainFrame.RefreshableView {
     @Override
     public void refresh() {
         loadUsers();
+    }
+
+    private JButton createIconButton(Icon icon, Color bgColor, String tooltip) {
+        JButton btn = new JButton(icon);
+        btn.setToolTipText(tooltip);
+        btn.setBackground(bgColor);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setMargin(new Insets(4, 8, 4, 8));
+        btn.setPreferredSize(new Dimension(36, 28));
+        btn.setMaximumSize(new Dimension(36, 28));
+        return btn;
     }
 }
