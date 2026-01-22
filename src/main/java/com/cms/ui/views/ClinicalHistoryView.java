@@ -5,6 +5,7 @@ import com.cms.domain.Attachment;
 import com.cms.domain.ClinicalHistory;
 import com.cms.domain.Patient;
 import com.cms.presenter.ClinicalHistoryContract;
+import com.cms.repository.ClinicalHistoryRepository;
 import com.cms.repository.PatientRepository;
 import com.cms.ui.MainFrame;
 import com.cms.ui.components.IconFactory;
@@ -26,6 +27,7 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
 
     private final ClinicalHistoryContract.Presenter presenter;
     private final PatientRepository patientRepository;
+    private final ClinicalHistoryRepository historyRepository;
     private final MainFrame mainFrame;
     private JTable historyTable;
     private DefaultTableModel tableModel;
@@ -35,6 +37,7 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         this.mainFrame = mainFrame;
         AppFactory factory = AppFactory.getInstance();
         this.patientRepository = factory.getPatientRepository();
+        this.historyRepository = factory.getClinicalHistoryRepository();
         this.presenter = factory.getClinicalHistoryPresenter(this);
 
         setLayout(new BorderLayout());
@@ -129,15 +132,14 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         historyTable.getColumnModel().getColumn(3).setPreferredWidth(200);
         historyTable.getColumnModel().getColumn(4).setPreferredWidth(200);
         historyTable.getColumnModel().getColumn(5).setPreferredWidth(120);
-        historyTable.getColumnModel().getColumn(6).setPreferredWidth(160);
+        historyTable.getColumnModel().getColumn(6).setPreferredWidth(180);
+        historyTable.getColumnModel().getColumn(6).setMinWidth(180);
 
         historyTable.getColumnModel().getColumn(6)
                 .setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
-                    JPanel panel = new JPanel();
-                    panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+                    JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 5));
                     panel.setOpaque(true);
                     panel.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
-                    panel.add(Box.createHorizontalGlue());
 
                     JButton viewBtn = createTextIconButton("Ver",
                             IconFactory.createSearchIcon(12, new Color(59, 130, 246)),
@@ -147,9 +149,7 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
                             new Color(254, 243, 199), new Color(180, 140, 50));
 
                     panel.add(viewBtn);
-                    panel.add(Box.createHorizontalStrut(4));
                     panel.add(editBtn);
-                    panel.add(Box.createHorizontalGlue());
                     return panel;
                 });
 
@@ -159,11 +159,15 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
                 int column = historyTable.columnAtPoint(e.getPoint());
                 int row = historyTable.rowAtPoint(e.getPoint());
                 if (column == 6 && row >= 0) {
-                    int x = e.getPoint().x - historyTable.getCellRect(row, column, true).x;
+                    Rectangle cellRect = historyTable.getCellRect(row, column, true);
+                    int xInCell = e.getPoint().x - cellRect.x;
+                    int cellWidth = cellRect.width;
                     int id = (int) tableModel.getValueAt(row, 0);
-                    if (x < 45) {
+
+                    // Left half = Ver, Right half = Editar
+                    if (xInCell < cellWidth / 2) {
                         presenter.selectHistory(id);
-                    } else if (x < 90) {
+                    } else {
                         editHistory(row);
                     }
                 }
@@ -211,7 +215,16 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
 
     private void editHistory(int row) {
         int id = (int) tableModel.getValueAt(row, 0);
-        presenter.selectHistory(id);
+        // Buscar la historia clínica
+        historyRepository.findById(id).ifPresent(history -> {
+            ClinicalHistoryDialog dialog = new ClinicalHistoryDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(this), history);
+            dialog.setOnSaveCallback(saved -> {
+                presenter.loadAllHistories();
+                showSuccess("Historia clínica actualizada correctamente");
+            });
+            dialog.setVisible(true);
+        });
     }
 
     private void refreshPatientCombo() {
