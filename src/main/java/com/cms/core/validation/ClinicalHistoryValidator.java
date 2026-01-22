@@ -7,6 +7,11 @@ public class ClinicalHistoryValidator {
     public ValidationResult validate(ClinicalHistory history) {
         ValidationResult result = new ValidationResult();
 
+        if (history == null) {
+            result.addError("La historia clínica no puede ser nula");
+            return result;
+        }
+
         if (history.getPatientId() == null) {
             result.addError("Debe seleccionar un paciente");
         }

@@ -7,6 +7,11 @@ public class PatientValidator {
     public ValidationResult validate(Patient patient) {
         ValidationResult result = new ValidationResult();
 
+        if (patient == null) {
+            result.addError("El paciente no puede ser nulo");
+            return result;
+        }
+
         if (!ValidationResult.isNotEmpty(patient.getCedula())) {
             result.addError("La cédula es obligatoria");
         } else if (!ValidationResult.isValidCedula(patient.getCedula())) {
