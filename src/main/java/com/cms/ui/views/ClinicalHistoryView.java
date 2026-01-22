@@ -9,6 +9,7 @@ import com.cms.repository.PatientRepository;
 import com.cms.ui.MainFrame;
 import com.cms.ui.components.IconFactory;
 import com.cms.ui.dialogs.ClinicalHistoryDialog;
+import com.cms.ui.dialogs.ClinicalHistoryViewerDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -252,49 +253,9 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
 
     @Override
     public void showHistoryDetails(ClinicalHistory history) {
-        String patientName = patientRepository.findById(history.getPatientId())
-                .map(Patient::getNombreCompleto)
-                .orElse("Desconocido");
-
-        String details = String.format("""
-                Paciente: %s
-                Fecha: %s
-                Motivo: %s
-
-                Antecedentes:
-                %s
-
-                Examen Físico:
-                %s
-
-                Diagnóstico:
-                %s
-
-                Conducta:
-                %s
-
-                Observaciones:
-                %s
-
-                Médico: %s
-                """,
-                patientName,
-                history.getFechaConsulta() != null ? history.getFechaConsulta().format(DATE_FORMATTER) : "N/A",
-                history.getMotivoConsulta(),
-                history.getAntecedentes() != null ? history.getAntecedentes() : "N/A",
-                history.getExamenFisico() != null ? history.getExamenFisico() : "N/A",
-                history.getDiagnostico() != null ? history.getDiagnostico() : "N/A",
-                history.getConducta() != null ? history.getConducta() : "N/A",
-                history.getObservaciones() != null ? history.getObservaciones() : "N/A",
-                history.getMedico() != null ? history.getMedico() : "N/A");
-
-        JTextArea textArea = new JTextArea(details);
-        textArea.setEditable(false);
-        textArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setPreferredSize(new Dimension(500, 450));
-
-        JOptionPane.showMessageDialog(this, scrollPane, "Detalles de Consulta", JOptionPane.INFORMATION_MESSAGE);
+        ClinicalHistoryViewerDialog dialog = new ClinicalHistoryViewerDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this), history);
+        dialog.setVisible(true);
     }
 
     @Override
