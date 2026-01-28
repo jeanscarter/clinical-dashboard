@@ -45,6 +45,20 @@
       <version>5.5.0</version>
       <scope>test</scope>
     </dependency>
+    
+    <!-- Date Picker -->
+    <dependency>
+      <groupId>com.github.lgooddatepicker</groupId>
+      <artifactId>LGoodDatePicker</artifactId>
+      <version>11.2.1</version>
+    </dependency>
+    
+    <!-- PDF Reports -->
+    <dependency>
+      <groupId>net.sf.jasperreports</groupId>
+      <artifactId>jasperreports</artifactId>
+      <version>6.21.0</version>
+    </dependency>
   </dependencies>
 
   <build>

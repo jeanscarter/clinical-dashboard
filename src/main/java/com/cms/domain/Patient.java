@@ -1,6 +1,7 @@
 package com.cms.domain;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -126,6 +127,18 @@ public class Patient {
 
     public String getNombreCompleto() {
         return nombre + " " + apellido;
+    }
+
+    /**
+     * Calculates the patient's age in years based on birth date.
+     * 
+     * @return Age in years, or null if birth date is not set.
+     */
+    public Integer getAge() {
+        if (fechaNacimiento == null) {
+            return null;
+        }
+        return Period.between(fechaNacimiento, LocalDate.now()).getYears();
     }
 
     @Override

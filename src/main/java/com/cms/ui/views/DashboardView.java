@@ -3,7 +3,10 @@ package com.cms.ui.views;
 import com.cms.di.AppFactory;
 import com.cms.repository.PatientRepository;
 import com.cms.repository.ClinicalHistoryRepository;
+import com.cms.service.AppointmentService;
+import com.cms.service.dto.AppointmentDTO;
 import com.cms.ui.MainFrame;
+import com.cms.ui.components.AppointmentCard;
 import com.cms.ui.components.IconFactory;
 import com.cms.ui.dialogs.ReportsDialog;
 
@@ -12,6 +15,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class DashboardView extends JPanel {
 
@@ -23,6 +27,7 @@ public class DashboardView extends JPanel {
 
     private final PatientRepository patientRepository;
     private final ClinicalHistoryRepository clinicalHistoryRepository;
+    private final AppointmentService appointmentService;
     private final MainFrame mainFrame;
 
     public DashboardView(MainFrame mainFrame) {
@@ -30,6 +35,7 @@ public class DashboardView extends JPanel {
         AppFactory factory = AppFactory.getInstance();
         this.patientRepository = factory.getPatientRepository();
         this.clinicalHistoryRepository = factory.getClinicalHistoryRepository();
+        this.appointmentService = factory.getAppointmentService();
 
         setLayout(new BorderLayout());
         setBackground(new Color(241, 245, 249));
@@ -81,7 +87,9 @@ public class DashboardView extends JPanel {
                 IconFactory.createCalendarIcon(24, new Color(100, 116, 139)), SUCCESS));
         statsGrid.add(createStatCard("Total Consultas", String.valueOf(totalConsultas),
                 IconFactory.createDocumentIcon(24, new Color(100, 116, 139)), INFO));
-        statsGrid.add(createStatCard("Pendientes", "0",
+
+        long pendingAppointments = appointmentService.countPendingToday();
+        statsGrid.add(createStatCard("Pendientes", String.valueOf(pendingAppointments),
                 IconFactory.createClockIcon(24, new Color(100, 116, 139)), WARNING));
 
         content.add(statsGrid, BorderLayout.NORTH);
@@ -90,7 +98,7 @@ public class DashboardView extends JPanel {
         mainContent.setOpaque(false);
         mainContent.setBorder(new EmptyBorder(25, 0, 0, 0));
 
-        mainContent.add(createRecentPatientsCard());
+        mainContent.add(createAgendaCard());
         mainContent.add(createQuickActionsCard());
 
         content.add(mainContent, BorderLayout.CENTER);
@@ -146,6 +154,61 @@ public class DashboardView extends JPanel {
         card.add(centerPanel, BorderLayout.CENTER);
 
         return card;
+    }
+
+    private JPanel createAgendaCard() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(CARD_BG);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
+                new EmptyBorder(20, 20, 20, 20)));
+
+        JLabel title = new JLabel("Agenda de Hoy");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        title.setForeground(new Color(15, 23, 42));
+        title.setBorder(new EmptyBorder(0, 0, 15, 0));
+
+        JPanel listPanel = new JPanel();
+        listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+        listPanel.setOpaque(false);
+
+        List<AppointmentDTO> todayAppointments = appointmentService.getTodayAppointments();
+
+        if (todayAppointments.isEmpty()) {
+            JLabel emptyLabel = new JLabel("No hay citas programadas para hoy");
+            emptyLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+            emptyLabel.setForeground(new Color(148, 163, 184));
+            emptyLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            listPanel.add(emptyLabel);
+        } else {
+            for (AppointmentDTO appt : todayAppointments) {
+                AppointmentCard card1 = new AppointmentCard(appt);
+                card1.setAlignmentX(Component.LEFT_ALIGNMENT);
+                card1.setOnAttendClick(this::handleAttendAppointment);
+                listPanel.add(card1);
+                listPanel.add(Box.createVerticalStrut(10));
+            }
+        }
+
+        JScrollPane scrollPane = new JScrollPane(listPanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        card.add(title, BorderLayout.NORTH);
+        card.add(scrollPane, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    private void handleAttendAppointment(AppointmentDTO appointment) {
+        // Mark appointment as in progress
+        appointmentService.startAppointment(appointment.getId());
+
+        // Navigate to Clinical History view with the patient and reason pre-filled
+        if (mainFrame != null) {
+            mainFrame.navigateToWithAction("history", "new_consultation_for_appointment",
+                    appointment.getPatientId() + "|" + appointment.getReason());
+        }
     }
 
     private JPanel createRecentPatientsCard() {

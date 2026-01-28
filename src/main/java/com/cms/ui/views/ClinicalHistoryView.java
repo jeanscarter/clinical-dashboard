@@ -16,6 +16,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -46,6 +48,15 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
 
         add(createHeader(), BorderLayout.NORTH);
         add(createContent(), BorderLayout.CENTER);
+
+        // Auto-refresh when view becomes visible (tab switch)
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                presenter.loadAllHistories();
+                refreshPatientCombo();
+            }
+        });
 
         presenter.loadAllHistories();
     }

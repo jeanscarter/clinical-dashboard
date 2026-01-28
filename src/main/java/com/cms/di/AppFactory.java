@@ -7,10 +7,12 @@ import com.cms.presenter.ClinicalHistoryContract;
 import com.cms.presenter.ClinicalHistoryPresenter;
 import com.cms.presenter.PatientContract;
 import com.cms.presenter.PatientPresenter;
+import com.cms.repository.AppointmentRepository;
 import com.cms.repository.AttachmentRepository;
 import com.cms.repository.ClinicalHistoryRepository;
 import com.cms.repository.PatientRepository;
 import com.cms.repository.UserRepository;
+import com.cms.repository.sqlite.SQLiteAppointmentRepository;
 import com.cms.repository.sqlite.SQLiteAttachmentRepository;
 import com.cms.repository.sqlite.SQLiteClinicalHistoryRepository;
 import com.cms.repository.sqlite.SQLitePatientRepository;
@@ -29,6 +31,7 @@ public class AppFactory {
     private ClinicalHistoryRepository clinicalHistoryRepository;
     private AttachmentRepository attachmentRepository;
     private UserRepository userRepository;
+    private AppointmentRepository appointmentRepository;
 
     // Services
     private PatientService patientService;
@@ -40,6 +43,7 @@ public class AppFactory {
     private ReportService reportService;
     private BackupService backupService;
     private ExportImportService exportImportService;
+    private AppointmentService appointmentService;
 
     private AppFactory() {
         this.dbConnection = DatabaseConnection.getInstance();
@@ -105,6 +109,13 @@ public class AppFactory {
             userRepository = new SQLiteUserRepository(dbConnection);
         }
         return userRepository;
+    }
+
+    public AppointmentRepository getAppointmentRepository() {
+        if (appointmentRepository == null) {
+            appointmentRepository = new SQLiteAppointmentRepository(dbConnection);
+        }
+        return appointmentRepository;
     }
 
     // Services
@@ -180,5 +191,15 @@ public class AppFactory {
                     getClinicalHistoryRepository());
         }
         return exportImportService;
+    }
+
+    public AppointmentService getAppointmentService() {
+        if (appointmentService == null) {
+            appointmentService = new AppointmentService(
+                    getAppointmentRepository(),
+                    getPatientRepository(),
+                    getUserRepository());
+        }
+        return appointmentService;
     }
 }

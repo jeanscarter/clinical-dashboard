@@ -6,6 +6,7 @@ import com.cms.domain.ClinicalHistory;
 import com.cms.domain.Patient;
 import com.cms.repository.AttachmentRepository;
 import com.cms.repository.PatientRepository;
+import com.cms.service.ClinicalHistoryService;
 import com.cms.ui.components.IconFactory;
 import com.cms.ui.components.ImageViewerPanel;
 
@@ -14,11 +15,11 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Diálogo para visualizar los detalles de una historia clínica con galería de
@@ -39,6 +40,7 @@ public class ClinicalHistoryViewerDialog extends JDialog {
     private ImageViewerPanel imageViewer;
     private JLabel imageCounterLabel;
     private JPanel thumbnailPanel;
+    private Consumer<Integer> onDeleteCallback;
 
     public ClinicalHistoryViewerDialog(Frame parent, ClinicalHistory history) {
         super(parent, "Detalles de Consulta", true);
@@ -358,9 +360,41 @@ public class ClinicalHistoryViewerDialog extends JDialog {
     }
 
     private JPanel createFooter() {
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel footer = new JPanel(new BorderLayout());
         footer.setBorder(new EmptyBorder(10, 15, 10, 15));
         footer.setBackground(CARD_BG);
+
+        // Left side - Action buttons
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        actionPanel.setOpaque(false);
+
+        // Delete button
+        JButton deleteBtn = new JButton("Eliminar Consulta");
+        deleteBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        deleteBtn.setBackground(new Color(239, 68, 68));
+        deleteBtn.setForeground(Color.WHITE);
+        deleteBtn.setFocusPainted(false);
+        deleteBtn.setBorderPainted(false);
+        deleteBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        deleteBtn.addActionListener(e -> confirmAndDelete());
+        actionPanel.add(deleteBtn);
+
+        // Print button
+        JButton printBtn = new JButton("Imprimir");
+        printBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        printBtn.setBackground(new Color(34, 197, 94));
+        printBtn.setForeground(Color.WHITE);
+        printBtn.setFocusPainted(false);
+        printBtn.setBorderPainted(false);
+        printBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        printBtn.addActionListener(e -> printHistory());
+        actionPanel.add(printBtn);
+
+        footer.add(actionPanel, BorderLayout.WEST);
+
+        // Right side - Close button
+        JPanel closePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        closePanel.setOpaque(false);
 
         JButton closeBtn = new JButton("Cerrar");
         closeBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -370,8 +404,57 @@ public class ClinicalHistoryViewerDialog extends JDialog {
         closeBtn.setFocusPainted(false);
         closeBtn.setBorderPainted(false);
         closeBtn.addActionListener(e -> dispose());
+        closePanel.add(closeBtn);
 
-        footer.add(closeBtn);
+        footer.add(closePanel, BorderLayout.EAST);
         return footer;
+    }
+
+    /**
+     * Sets a callback to be invoked when the history is deleted.
+     */
+    public void setOnDeleteCallback(Consumer<Integer> callback) {
+        this.onDeleteCallback = callback;
+    }
+
+    private void confirmAndDelete() {
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                "\u00bfEst\u00e1 seguro de que desea ELIMINAR esta consulta?\n" +
+                        "\u00a1ADVERTENCIA: Esta acci\u00f3n es IRREVERSIBLE!\n" +
+                        "Se eliminar\u00e1n todos los datos y fotos adjuntas.",
+                "Confirmar Eliminaci\u00f3n",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (option == JOptionPane.YES_OPTION) {
+            try {
+                ClinicalHistoryService historyService = AppFactory.getInstance().getClinicalHistoryService();
+                historyService.deleteHistory(history.getId());
+
+                JOptionPane.showMessageDialog(this,
+                        "La consulta ha sido eliminada correctamente.",
+                        "Eliminado",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                if (onDeleteCallback != null) {
+                    onDeleteCallback.accept(history.getId());
+                }
+                dispose();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this,
+                        "Error al eliminar la consulta: " + e.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void printHistory() {
+        // TODO: Implement JasperReports PDF generation
+        JOptionPane.showMessageDialog(this,
+                "Funci\u00f3n de impresi\u00f3n en desarrollo.\nSe implementar\u00e1 con JasperReports.",
+                "Imprimir",
+                JOptionPane.INFORMATION_MESSAGE);
     }
 }
