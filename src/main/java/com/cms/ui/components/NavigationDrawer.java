@@ -78,6 +78,8 @@ public class NavigationDrawer extends JPanel {
                 c -> IconFactory.createChartIcon(18, c));
         addNavItem(navPanel, "pacientes", "Pacientes",
                 c -> IconFactory.createUsersIcon(18, c));
+        addNavItem(navPanel, "agenda", "Agenda",
+                c -> IconFactory.createCalendarIcon(18, c));
         addNavItem(navPanel, "historias", "Historias Clínicas",
                 c -> IconFactory.createDocumentIcon(18, c));
         addNavItem(navPanel, "reportes", "Reportes",

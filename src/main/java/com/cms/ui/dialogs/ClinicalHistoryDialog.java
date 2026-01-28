@@ -10,6 +10,7 @@ import com.cms.repository.AttachmentRepository;
 import com.cms.repository.ClinicalHistoryRepository;
 import com.cms.repository.PatientRepository;
 import com.cms.ui.components.AttachmentPanel;
+import com.cms.ui.components.AutocompletePatientField;
 import com.cms.ui.dialogs.ImageViewerDialog;
 import com.cms.util.ClipboardImageHandler;
 
@@ -37,7 +38,7 @@ public class ClinicalHistoryDialog extends JDialog {
     private final ClinicalHistoryValidator validator;
     private final ClipboardImageHandler clipboardHandler;
 
-    private JComboBox<PatientItem> patientCombo;
+    private AutocompletePatientField patientField;
     private JTextField fechaField;
     private JTextField motivoField;
     private JTextArea antecedentesArea;
@@ -54,6 +55,19 @@ public class ClinicalHistoryDialog extends JDialog {
     private Consumer<ClinicalHistory> onSaveCallback;
 
     public ClinicalHistoryDialog(Frame parent, ClinicalHistory history) {
+        this(parent, history, null, null, "Hensy Sardi");
+    }
+
+    /**
+     * Constructor for creating a new consultation with pre-filled data.
+     * Used when coming from appointment scheduling.
+     */
+    public ClinicalHistoryDialog(Frame parent, Integer patientId, String motivo, String medico) {
+        this(parent, null, patientId, motivo, medico);
+    }
+
+    private ClinicalHistoryDialog(Frame parent, ClinicalHistory history, Integer preselectedPatientId,
+            String prefilledMotivo, String prefilledMedico) {
         super(parent, history == null ? "Nueva Consulta" : "Editar Consulta", true);
 
         AppFactory factory = AppFactory.getInstance();
@@ -76,6 +90,17 @@ public class ClinicalHistoryDialog extends JDialog {
         loadPatients();
         if (history != null) {
             populateForm(history);
+        } else {
+            // Pre-fill fields for new consultation from appointment
+            if (preselectedPatientId != null) {
+                selectPatient(preselectedPatientId);
+            }
+            if (prefilledMotivo != null && !prefilledMotivo.isEmpty()) {
+                motivoField.setText(prefilledMotivo);
+            }
+            if (prefilledMedico != null && !prefilledMedico.isEmpty()) {
+                medicoField.setText(prefilledMedico);
+            }
         }
     }
 
@@ -105,8 +130,8 @@ public class ClinicalHistoryDialog extends JDialog {
         gbc.insets = new Insets(6, 6, 6, 6);
         gbc.anchor = GridBagConstraints.NORTHWEST;
 
-        patientCombo = new JComboBox<>();
-        patientCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        patientField = new AutocompletePatientField(patientRepository);
+        patientField.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         fechaField = createTextField();
         fechaField.setText(LocalDateTime.now().format(DATE_FORMAT));
@@ -128,8 +153,9 @@ public class ClinicalHistoryDialog extends JDialog {
         gbc.gridx = 1;
         gbc.weightx = 0.75;
         gbc.gridwidth = 2;
-        patientCombo.setPreferredSize(new Dimension(400, 35));
-        form.add(patientCombo, gbc);
+        patientField.setPreferredSize(new Dimension(400, 42));
+        gbc.gridwidth = 2;
+        form.add(patientField, gbc);
         gbc.gridwidth = 1;
         row++;
 
@@ -354,20 +380,12 @@ public class ClinicalHistoryDialog extends JDialog {
     }
 
     private void loadPatients() {
-        patientCombo.removeAllItems();
-        for (Patient p : patientRepository.findAll()) {
-            patientCombo.addItem(new PatientItem(p.getId(), p.getNombreCompleto() + " - " + p.getCedula()));
-        }
+        // AutocompletePatientField loads patients automatically
+        // Nothing to do here
     }
 
     public void selectPatient(Integer patientId) {
-        for (int i = 0; i < patientCombo.getItemCount(); i++) {
-            PatientItem item = patientCombo.getItemAt(i);
-            if (item.id().equals(patientId)) {
-                patientCombo.setSelectedIndex(i);
-                break;
-            }
-        }
+        patientField.selectPatient(patientId);
     }
 
     private void populateForm(ClinicalHistory history) {
@@ -398,9 +416,9 @@ public class ClinicalHistoryDialog extends JDialog {
     private ClinicalHistory buildHistory() {
         ClinicalHistory history = currentHistory != null ? currentHistory : new ClinicalHistory();
 
-        PatientItem selectedPatient = (PatientItem) patientCombo.getSelectedItem();
+        Patient selectedPatient = patientField.getSelectedPatient();
         if (selectedPatient != null) {
-            history.setPatientId(selectedPatient.id());
+            history.setPatientId(selectedPatient.getId());
         }
 
         String fechaStr = fechaField.getText().trim();
@@ -497,13 +515,6 @@ public class ClinicalHistoryDialog extends JDialog {
 
     public void setOnSaveCallback(Consumer<ClinicalHistory> callback) {
         this.onSaveCallback = callback;
-    }
-
-    private record PatientItem(Integer id, String display) {
-        @Override
-        public String toString() {
-            return display;
-        }
     }
 
     private static class TempAttachment {

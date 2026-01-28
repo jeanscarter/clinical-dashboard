@@ -3,8 +3,11 @@ package com.cms.ui.views;
 import com.cms.di.AppFactory;
 import com.cms.domain.Patient;
 import com.cms.presenter.PatientContract;
+import com.cms.repository.PatientRepository;
 import com.cms.ui.MainFrame;
 import com.cms.ui.components.IconFactory;
+import com.cms.ui.dialogs.AppointmentDialog;
+import com.cms.ui.dialogs.CustomAlertDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -81,7 +84,9 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView, P
 
     @Override
     public void showSuccess(String message) {
-        JOptionPane.showMessageDialog(this, message, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        // Suppressed: We now show CustomAlertDialog directly in save/update actions
+        // The presenter still calls this for consistency, but the UI is handled
+        // separately
     }
 
     @Override
@@ -308,12 +313,45 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView, P
             p.setEmail(emailField.getText().trim());
             p.setDireccion(direccionField.getText().trim());
 
-            if (patient == null) {
+            boolean isNewPatient = (patient == null);
+            String patientFullName = p.getNombreCompleto();
+
+            if (isNewPatient) {
                 presenter.savePatient(p);
             } else {
                 presenter.updatePatient(p);
             }
             dialog.dispose();
+
+            // Prompt for appointment after new patient registration
+            if (isNewPatient) {
+                // Step 1: Show success message
+                CustomAlertDialog.showSuccess(
+                        PatientsView.this,
+                        "Registro Exitoso",
+                        "Paciente Guardado Exitosamente");
+
+                // Step 2: Ask if user wants to schedule an appointment with personalized
+                // message
+                boolean wantsAppointment = CustomAlertDialog.showConfirm(
+                        PatientsView.this,
+                        "Agendar Cita",
+                        "¿Desea agendar una cita para " + patientFullName + "?");
+
+                if (wantsAppointment) {
+                    // Find the saved patient to get the ID
+                    PatientRepository patientRepo = AppFactory.getInstance().getPatientRepository();
+                    patientRepo.findByCedula(p.getCedula()).ifPresent(savedPatient -> {
+                        Frame owner = (Frame) SwingUtilities.getWindowAncestor(PatientsView.this);
+                        AppointmentDialog appointmentDialog = new AppointmentDialog(owner, savedPatient.getId());
+                        appointmentDialog.setOnSaveCallback(saved -> {
+                            // Navigate to agenda after saving appointment
+                            mainFrame.navigateTo("agenda");
+                        });
+                        appointmentDialog.setVisible(true);
+                    });
+                }
+            }
         });
 
         buttonPanel.add(cancelBtn);

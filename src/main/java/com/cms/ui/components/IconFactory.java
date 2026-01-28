@@ -622,4 +622,313 @@ public class IconFactory {
             }
         };
     }
+
+    /**
+     * Creates a trash icon (alias for createDeleteIcon)
+     */
+    public static Icon createTrashIcon(int size, Color color) {
+        return createDeleteIcon(size, color);
+    }
+
+    /**
+     * Creates a chevron left arrow icon for navigation
+     */
+    public static Icon createChevronLeftIcon(int size, Color color) {
+        return new Icon() {
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+                g2.setColor(color);
+                g2.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                int margin = size / 4;
+                int cx = x + size / 2;
+                int cy = y + size / 2;
+
+                // Draw < shape
+                g2.drawLine(cx + margin / 2, y + margin, cx - margin / 2, cy);
+                g2.drawLine(cx - margin / 2, cy, cx + margin / 2, y + size - margin);
+
+                g2.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return size;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return size;
+            }
+        };
+    }
+
+    /**
+     * Creates a chevron right arrow icon for navigation
+     */
+    public static Icon createChevronRightIcon(int size, Color color) {
+        return new Icon() {
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+                g2.setColor(color);
+                g2.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                int margin = size / 4;
+                int cx = x + size / 2;
+                int cy = y + size / 2;
+
+                // Draw > shape
+                g2.drawLine(cx - margin / 2, y + margin, cx + margin / 2, cy);
+                g2.drawLine(cx + margin / 2, cy, cx - margin / 2, y + size - margin);
+
+                g2.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return size;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return size;
+            }
+        };
+    }
+
+    /**
+     * Creates a check circle icon (✓ inside a circle) - for success messages
+     */
+    public static Icon createCheckCircleIcon(int size, Color color) {
+        return new Icon() {
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                g2.setColor(color);
+
+                int margin = 2;
+                int diameter = size - margin * 2;
+
+                // Draw filled circle
+                g2.fillOval(x + margin, y + margin, diameter, diameter);
+
+                // Draw checkmark in contrasting color
+                g2.setColor(new Color(34, 197, 94)); // Green for the circle
+                g2.setColor(color.equals(Color.WHITE) ? new Color(34, 197, 94) : Color.WHITE);
+                g2.setStroke(new BasicStroke(size / 8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                int cx = x + size / 2;
+                int cy = y + size / 2;
+                int checkSize = size / 4;
+
+                // Checkmark path
+                g2.drawLine(cx - checkSize, cy, cx - checkSize / 3, cy + checkSize);
+                g2.drawLine(cx - checkSize / 3, cy + checkSize, cx + checkSize, cy - checkSize);
+
+                g2.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return size;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return size;
+            }
+        };
+    }
+
+    /**
+     * Creates an error icon (X inside a circle) - for error messages
+     */
+    public static Icon createErrorIcon(int size, Color color) {
+        return new Icon() {
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                g2.setColor(color);
+
+                int margin = 2;
+                int diameter = size - margin * 2;
+
+                // Draw filled circle
+                g2.fillOval(x + margin, y + margin, diameter, diameter);
+
+                // Draw X in contrasting color
+                g2.setColor(color.equals(Color.WHITE) ? new Color(239, 68, 68) : Color.WHITE);
+                g2.setStroke(new BasicStroke(size / 8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                int cx = x + size / 2;
+                int cy = y + size / 2;
+                int crossSize = size / 5;
+
+                g2.drawLine(cx - crossSize, cy - crossSize, cx + crossSize, cy + crossSize);
+                g2.drawLine(cx + crossSize, cy - crossSize, cx - crossSize, cy + crossSize);
+
+                g2.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return size;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return size;
+            }
+        };
+    }
+
+    /**
+     * Creates a warning icon (triangle with exclamation mark)
+     */
+    public static Icon createWarningIcon(int size, Color color) {
+        return new Icon() {
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                g2.setColor(color);
+
+                int margin = 2;
+
+                // Draw triangle
+                int[] xPoints = { x + size / 2, x + margin, x + size - margin };
+                int[] yPoints = { y + margin, y + size - margin, y + size - margin };
+                g2.fillPolygon(xPoints, yPoints, 3);
+
+                // Draw exclamation mark
+                g2.setColor(color.equals(Color.WHITE) ? new Color(245, 158, 11) : Color.WHITE);
+                g2.setStroke(new BasicStroke(size / 10f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                int cx = x + size / 2;
+                int lineTop = y + size / 3;
+                int lineBottom = y + size - margin - size / 4;
+                int dotY = y + size - margin - size / 10;
+
+                g2.drawLine(cx, lineTop, cx, lineBottom);
+                g2.fillOval(cx - size / 16, dotY, size / 8, size / 8);
+
+                g2.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return size;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return size;
+            }
+        };
+    }
+
+    /**
+     * Creates an info icon (i inside a circle) - for information messages
+     */
+    public static Icon createInfoIcon(int size, Color color) {
+        return new Icon() {
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                g2.setColor(color);
+
+                int margin = 2;
+                int diameter = size - margin * 2;
+
+                // Draw filled circle
+                g2.fillOval(x + margin, y + margin, diameter, diameter);
+
+                // Draw "i" in contrasting color
+                g2.setColor(color.equals(Color.WHITE) ? new Color(59, 130, 246) : Color.WHITE);
+                g2.setStroke(new BasicStroke(size / 10f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                int cx = x + size / 2;
+                int dotY = y + size / 3;
+                int lineTop = y + size / 2 - size / 10;
+                int lineBottom = y + size - margin - size / 5;
+
+                // Dot
+                g2.fillOval(cx - size / 14, dotY - size / 14, size / 7, size / 7);
+                // Line
+                g2.drawLine(cx, lineTop, cx, lineBottom);
+
+                g2.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return size;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return size;
+            }
+        };
+    }
+
+    /**
+     * Creates a question mark icon (? inside a circle) - for confirmation dialogs
+     */
+    public static Icon createQuestionIcon(int size, Color color) {
+        return new Icon() {
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+                g2.setColor(color);
+
+                int margin = 2;
+                int diameter = size - margin * 2;
+
+                // Draw filled circle
+                g2.fillOval(x + margin, y + margin, diameter, diameter);
+
+                // Draw "?" in contrasting color
+                g2.setColor(color.equals(Color.WHITE) ? new Color(59, 130, 246) : Color.WHITE);
+
+                Font questionFont = new Font("Segoe UI", Font.BOLD, (int) (size * 0.55));
+                g2.setFont(questionFont);
+                FontMetrics fm = g2.getFontMetrics();
+                String q = "?";
+                int textX = x + (size - fm.stringWidth(q)) / 2;
+                int textY = y + (size + fm.getAscent() - fm.getDescent()) / 2;
+                g2.drawString(q, textX, textY);
+
+                g2.dispose();
+            }
+
+            @Override
+            public int getIconWidth() {
+                return size;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return size;
+            }
+        };
+    }
 }

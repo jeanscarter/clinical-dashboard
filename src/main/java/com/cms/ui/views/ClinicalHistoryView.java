@@ -7,6 +7,7 @@ import com.cms.domain.Patient;
 import com.cms.presenter.ClinicalHistoryContract;
 import com.cms.repository.ClinicalHistoryRepository;
 import com.cms.repository.PatientRepository;
+import com.cms.service.ClinicalHistoryService;
 import com.cms.ui.MainFrame;
 import com.cms.ui.components.IconFactory;
 import com.cms.ui.dialogs.ClinicalHistoryDialog;
@@ -143,8 +144,8 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         historyTable.getColumnModel().getColumn(3).setPreferredWidth(200);
         historyTable.getColumnModel().getColumn(4).setPreferredWidth(200);
         historyTable.getColumnModel().getColumn(5).setPreferredWidth(120);
-        historyTable.getColumnModel().getColumn(6).setPreferredWidth(180);
-        historyTable.getColumnModel().getColumn(6).setMinWidth(180);
+        historyTable.getColumnModel().getColumn(6).setPreferredWidth(250);
+        historyTable.getColumnModel().getColumn(6).setMinWidth(250);
 
         historyTable.getColumnModel().getColumn(6)
                 .setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
@@ -158,9 +159,13 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
                     JButton editBtn = createTextIconButton("Editar",
                             IconFactory.createEditIcon(12, new Color(180, 140, 50)),
                             new Color(254, 243, 199), new Color(180, 140, 50));
+                    JButton deleteBtn = createTextIconButton("Eliminar",
+                            IconFactory.createTrashIcon(12, new Color(239, 68, 68)),
+                            new Color(254, 226, 226), new Color(239, 68, 68));
 
                     panel.add(viewBtn);
                     panel.add(editBtn);
+                    panel.add(deleteBtn);
                     return panel;
                 });
 
@@ -175,11 +180,14 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
                     int cellWidth = cellRect.width;
                     int id = (int) tableModel.getValueAt(row, 0);
 
-                    // Left half = Ver, Right half = Editar
-                    if (xInCell < cellWidth / 2) {
+                    // Divide cell into thirds: Ver | Editar | Eliminar
+                    int thirdWidth = cellWidth / 3;
+                    if (xInCell < thirdWidth) {
                         presenter.selectHistory(id);
-                    } else {
+                    } else if (xInCell < thirdWidth * 2) {
                         editHistory(row);
+                    } else {
+                        deleteHistory(id);
                     }
                 }
             }
@@ -236,6 +244,36 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
             });
             dialog.setVisible(true);
         });
+    }
+
+    private void deleteHistory(int id) {
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                "¿Está seguro de que desea ELIMINAR esta consulta?\n" +
+                        "¡ADVERTENCIA: Esta acción es IRREVERSIBLE!\n" +
+                        "Se eliminarán todos los datos y fotos adjuntas.",
+                "Confirmar Eliminación",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (option == JOptionPane.YES_OPTION) {
+            try {
+                ClinicalHistoryService historyService = AppFactory.getInstance().getClinicalHistoryService();
+                historyService.deleteHistory(id);
+
+                JOptionPane.showMessageDialog(this,
+                        "La consulta ha sido eliminada correctamente.",
+                        "Eliminado",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                presenter.loadAllHistories();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this,
+                        "Error al eliminar la consulta: " + e.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private void refreshPatientCombo() {

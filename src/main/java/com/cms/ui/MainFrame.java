@@ -14,6 +14,7 @@ import com.cms.ui.views.DashboardView;
 import com.cms.ui.views.PatientsView;
 import com.cms.ui.views.SettingsView;
 import com.cms.ui.views.UsersView;
+import com.cms.ui.views.AppointmentsView;
 
 import javax.swing.*;
 import java.awt.*;
@@ -156,6 +157,7 @@ public class MainFrame extends JFrame {
             case "dashboard" -> new DashboardView(this);
             case "patients", "pacientes" -> new PatientsView(this);
             case "history", "historias" -> new ClinicalHistoryView(this);
+            case "agenda", "appointments" -> new AppointmentsView(this);
             case "usuarios" -> new UsersView(this);
             case "settings" -> new SettingsView(this);
             default -> createPlaceholderView(viewName);
