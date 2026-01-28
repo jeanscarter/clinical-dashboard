@@ -17,7 +17,6 @@ import com.cms.util.ClipboardImageHandler;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -48,6 +47,7 @@ public class ClinicalHistoryDialog extends JDialog {
     private JTextArea observacionesArea;
     private JTextField medicoField;
     private JLabel errorLabel;
+    private JLabel patientAgeLabel;
     private AttachmentPanel attachmentPanel;
 
     private ClinicalHistory currentHistory;
@@ -158,6 +158,24 @@ public class ClinicalHistoryDialog extends JDialog {
         form.add(patientField, gbc);
         gbc.gridwidth = 1;
         row++;
+
+        // Patient age label (shown when patient is selected)
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0.25;
+        form.add(createLabel("Edad"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 0.75;
+        gbc.gridwidth = 2;
+        patientAgeLabel = new JLabel("Seleccione un paciente");
+        patientAgeLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        patientAgeLabel.setForeground(new Color(100, 116, 139));
+        form.add(patientAgeLabel, gbc);
+        gbc.gridwidth = 1;
+        row++;
+
+        // Setup patient selection callback to update age
+        patientField.setOnPatientSelected(this::updatePatientAge);
 
         addFormRow(form, gbc, row++, "Fecha *", fechaField);
         addFormRow(form, gbc, row++, "Motivo Consulta *", motivoField);
@@ -391,6 +409,9 @@ public class ClinicalHistoryDialog extends JDialog {
     private void populateForm(ClinicalHistory history) {
         if (history.getPatientId() != null) {
             selectPatient(history.getPatientId());
+            // Update age label for the selected patient
+            Patient patient = patientRepository.findById(history.getPatientId()).orElse(null);
+            updatePatientAge(patient);
         }
         fechaField.setText(history.getFechaConsulta() != null ? history.getFechaConsulta().format(DATE_FORMAT) : "");
         motivoField.setText(history.getMotivoConsulta() != null ? history.getMotivoConsulta() : "");
@@ -515,6 +536,22 @@ public class ClinicalHistoryDialog extends JDialog {
 
     public void setOnSaveCallback(Consumer<ClinicalHistory> callback) {
         this.onSaveCallback = callback;
+    }
+
+    private void updatePatientAge(Patient patient) {
+        if (patient != null && patient.getAge() != null) {
+            patientAgeLabel.setText(patient.getAge() + " años");
+            patientAgeLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            patientAgeLabel.setForeground(new Color(59, 130, 246));
+        } else if (patient != null) {
+            patientAgeLabel.setText("Fecha de nacimiento no registrada");
+            patientAgeLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+            patientAgeLabel.setForeground(new Color(100, 116, 139));
+        } else {
+            patientAgeLabel.setText("Seleccione un paciente");
+            patientAgeLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+            patientAgeLabel.setForeground(new Color(100, 116, 139));
+        }
     }
 
     private static class TempAttachment {

@@ -122,11 +122,11 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         patientCombo.addActionListener(e -> filterByPatient());
         filterPanel.add(patientCombo);
 
-        String[] columns = { "ID", "Paciente", "Fecha", "Motivo", "Diagnóstico", "Médico", "Acciones" };
+        String[] columns = { "ID", "Paciente", "Edad", "Fecha", "Motivo", "Diagnóstico", "Médico", "Acciones" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 6;
+                return column == 7;
             }
         };
 
@@ -139,15 +139,16 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         historyTable.setGridColor(new Color(226, 232, 240));
 
         historyTable.getColumnModel().getColumn(0).setPreferredWidth(50);
-        historyTable.getColumnModel().getColumn(1).setPreferredWidth(180);
-        historyTable.getColumnModel().getColumn(2).setPreferredWidth(130);
-        historyTable.getColumnModel().getColumn(3).setPreferredWidth(200);
-        historyTable.getColumnModel().getColumn(4).setPreferredWidth(200);
-        historyTable.getColumnModel().getColumn(5).setPreferredWidth(120);
-        historyTable.getColumnModel().getColumn(6).setPreferredWidth(250);
-        historyTable.getColumnModel().getColumn(6).setMinWidth(250);
+        historyTable.getColumnModel().getColumn(1).setPreferredWidth(160);
+        historyTable.getColumnModel().getColumn(2).setPreferredWidth(60);
+        historyTable.getColumnModel().getColumn(3).setPreferredWidth(120);
+        historyTable.getColumnModel().getColumn(4).setPreferredWidth(180);
+        historyTable.getColumnModel().getColumn(5).setPreferredWidth(180);
+        historyTable.getColumnModel().getColumn(6).setPreferredWidth(100);
+        historyTable.getColumnModel().getColumn(7).setPreferredWidth(250);
+        historyTable.getColumnModel().getColumn(7).setMinWidth(250);
 
-        historyTable.getColumnModel().getColumn(6)
+        historyTable.getColumnModel().getColumn(7)
                 .setCellRenderer((table, value, isSelected, hasFocus, row, column) -> {
                     JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 5));
                     panel.setOpaque(true);
@@ -174,7 +175,7 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 int column = historyTable.columnAtPoint(e.getPoint());
                 int row = historyTable.rowAtPoint(e.getPoint());
-                if (column == 6 && row >= 0) {
+                if (column == 7 && row >= 0) {
                     Rectangle cellRect = historyTable.getCellRect(row, column, true);
                     int xInCell = e.getPoint().x - cellRect.x;
                     int cellWidth = cellRect.width;
@@ -295,15 +296,17 @@ public class ClinicalHistoryView extends JPanel implements MainFrame.Refreshable
         tableModel.setRowCount(0);
         for (ClinicalHistory history : histories) {
             String patientName = "";
+            String patientAge = "";
             if (history.getPatientId() != null) {
-                patientName = patientRepository.findById(history.getPatientId())
-                        .map(Patient::getNombreCompleto)
-                        .orElse("Desconocido");
+                var patientOpt = patientRepository.findById(history.getPatientId());
+                patientName = patientOpt.map(Patient::getNombreCompleto).orElse("Desconocido");
+                patientAge = patientOpt.map(p -> p.getAge() != null ? p.getAge() + " años" : "-").orElse("-");
             }
 
             tableModel.addRow(new Object[] {
                     history.getId(),
                     patientName,
+                    patientAge,
                     history.getFechaConsulta() != null ? history.getFechaConsulta().format(DATE_FORMATTER) : "",
                     history.getMotivoConsulta(),
                     history.getDiagnostico(),

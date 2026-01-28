@@ -16,6 +16,8 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
+import com.github.lgooddatepicker.components.DatePicker;
+import com.github.lgooddatepicker.components.DatePickerSettings;
 
 public class PatientsView extends JPanel implements MainFrame.RefreshableView, PatientContract.View {
 
@@ -273,6 +275,25 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView, P
         JTextField cedulaField = new JTextField(patient != null ? patient.getCedula() : "");
         JTextField nombreField = new JTextField(patient != null ? patient.getNombre() : "");
         JTextField apellidoField = new JTextField(patient != null ? patient.getApellido() : "");
+
+        // Fecha de nacimiento DatePicker
+        DatePickerSettings dateSettings = new DatePickerSettings();
+        dateSettings.setFormatForDatesCommonEra("dd/MM/yyyy");
+        dateSettings.setAllowEmptyDates(true);
+        DatePicker fechaNacimientoPicker = new DatePicker(dateSettings);
+        fechaNacimientoPicker.setPreferredSize(new Dimension(250, 35));
+        if (patient != null && patient.getFechaNacimiento() != null) {
+            fechaNacimientoPicker.setDate(patient.getFechaNacimiento());
+        }
+
+        // Sexo combo
+        JComboBox<String> sexoCombo = new JComboBox<>(new String[] { "", "Masculino", "Femenino", "Otro" });
+        sexoCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        sexoCombo.setPreferredSize(new Dimension(250, 35));
+        if (patient != null && patient.getSexo() != null) {
+            sexoCombo.setSelectedItem(patient.getSexo());
+        }
+
         JTextField telefonoField = new JTextField(patient != null ? patient.getTelefono() : "");
         JTextField emailField = new JTextField(patient != null ? patient.getEmail() : "");
         JTextField direccionField = new JTextField(patient != null ? patient.getDireccion() : "");
@@ -281,6 +302,26 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView, P
         addFormField(form, gbc, row++, "Cédula: *", cedulaField);
         addFormField(form, gbc, row++, "Nombre: *", nombreField);
         addFormField(form, gbc, row++, "Apellido:", apellidoField);
+        // Add fecha nacimiento DatePicker manually
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0.3;
+        form.add(new JLabel("Fecha Nac.:"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        form.add(fechaNacimientoPicker, gbc);
+        row++;
+
+        // Add sexo combo manually
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0.3;
+        form.add(new JLabel("Sexo:"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        form.add(sexoCombo, gbc);
+        row++;
+
         addFormField(form, gbc, row++, "Teléfono:", telefonoField);
         addFormField(form, gbc, row++, "Email:", emailField);
         addFormField(form, gbc, row++, "Dirección:", direccionField);
@@ -309,6 +350,11 @@ public class PatientsView extends JPanel implements MainFrame.RefreshableView, P
             p.setCedula(cedulaField.getText().trim());
             p.setNombre(nombreField.getText().trim());
             p.setApellido(apellidoField.getText().trim());
+
+            // Get fecha de nacimiento from DatePicker
+            p.setFechaNacimiento(fechaNacimientoPicker.getDate());
+
+            p.setSexo((String) sexoCombo.getSelectedItem());
             p.setTelefono(telefonoField.getText().trim());
             p.setEmail(emailField.getText().trim());
             p.setDireccion(direccionField.getText().trim());

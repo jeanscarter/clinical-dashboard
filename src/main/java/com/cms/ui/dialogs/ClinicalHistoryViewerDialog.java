@@ -52,6 +52,7 @@ public class ClinicalHistoryViewerDialog extends JDialog {
     private final ClinicalHistory history;
     private final List<BufferedImage> images;
     private final String patientName;
+    private final Integer patientAge;
 
     public ClinicalHistoryViewerDialog(Frame parent, ClinicalHistory history) {
         super(parent, "Detalles de Consulta", true);
@@ -81,10 +82,10 @@ public class ClinicalHistoryViewerDialog extends JDialog {
             }
         }
 
-        // Get patient name
-        this.patientName = patientRepo.findById(history.getPatientId())
-                .map(Patient::getNombreCompleto)
-                .orElse("Desconocido");
+        // Get patient name and age
+        Patient patient = patientRepo.findById(history.getPatientId()).orElse(null);
+        this.patientName = patient != null ? patient.getNombreCompleto() : "Desconocido";
+        this.patientAge = patient != null ? patient.getAge() : null;
 
         // Fullscreen setup
         setUndecorated(false);
@@ -167,6 +168,14 @@ public class ClinicalHistoryViewerDialog extends JDialog {
         JPanel idChip = createInfoChip(
                 IconFactory.createDocumentIcon(16, PRIMARY_LIGHT),
                 "ID: " + history.getId());
+
+        // Age chip
+        if (patientAge != null) {
+            JPanel ageChip = createInfoChip(
+                    IconFactory.createUserIcon(16, PRIMARY_LIGHT),
+                    patientAge + " años");
+            infoBadge.add(ageChip);
+        }
 
         // Images count chip
         if (!images.isEmpty()) {
